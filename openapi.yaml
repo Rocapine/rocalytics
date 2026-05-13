@@ -1,0 +1,318 @@
+openapi: 3.1.0
+info:
+  title: Rocalytics API
+  version: 1.0.0
+
+servers:
+  - url: https://rocalytics-api.rocapine.io
+    description: Production
+
+paths:
+  /functions/v1/identify:
+    post:
+      summary: Identify a user
+      parameters:
+        - name: X-Roca-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Application-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            example: com.example.app
+        - name: X-Platform
+          in: header
+          required: true
+          schema:
+            type: string
+            example: ios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifyPayload'
+      responses:
+        '200':
+          description: Identity upserted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roca_id:
+                    type: string
+                    format: uuid
+        '400':
+          description: Missing required headers or invalid JSON
+        '405':
+          description: Method not allowed
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /functions/v1/track:
+    post:
+      summary: Track an event
+      parameters:
+        - name: X-Roca-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Application-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            example: com.example.app
+        - name: X-Platform
+          in: header
+          required: true
+          schema:
+            type: string
+            example: ios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackPayload'
+      responses:
+        '204':
+          description: Event recorded
+        '400':
+          description: Validation error (missing fields, invalid event name, or wrong deduplication_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    IdentifyPayload:
+      type: object
+      properties:
+        revenue_cat_id:
+          type: string
+        adjust_id:
+          type: string
+        user_id:
+          type: string
+        amplitude_device_id:
+          type: string
+        idfa:
+          type: string
+        idfv:
+          type: string
+        android_id:
+          type: string
+        aaid:
+          type: string
+        customerio_id:
+          type: string
+        segment_id:
+          type: string
+
+    TrackPayload:
+      oneOf:
+        - $ref: '#/components/schemas/InstallPayload'
+        - $ref: '#/components/schemas/PaywallPresentedPayload'
+        - $ref: '#/components/schemas/PurchasePayload'
+        - $ref: '#/components/schemas/TrialStartedPayload'
+        - $ref: '#/components/schemas/SubscriptionStartedPayload'
+      discriminator:
+        propertyName: name
+        mapping:
+          install: '#/components/schemas/InstallPayload'
+          paywall_presented: '#/components/schemas/PaywallPresentedPayload'
+          purchase: '#/components/schemas/PurchasePayload'
+          trial_started: '#/components/schemas/TrialStartedPayload'
+          subscription_started: '#/components/schemas/SubscriptionStartedPayload'
+
+    TrackPayloadBase:
+      type: object
+      required:
+        - name
+        - deduplication_id
+      properties:
+        deduplication_id:
+          type: string
+          description: Must be formatted as `{X-Roca-ID}-{name}`
+          example: 550e8400-e29b-41d4-a716-446655440000-install
+        timestamp:
+          type: string
+          format: date-time
+        device_context:
+          type: object
+          additionalProperties: true
+
+    InstallPayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+            - properties
+          properties:
+            name:
+              type: string
+              enum: [install]
+            properties:
+              type: object
+              required:
+                - install_time
+              properties:
+                install_time:
+                  type: string
+                  format: date-time
+
+    PaywallPresentedPayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              enum: [paywall_presented]
+            properties:
+              type: object
+              additionalProperties: true
+
+    PurchasePayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+            - properties
+          properties:
+            name:
+              type: string
+              enum: [purchase]
+            properties:
+              type: object
+              required:
+                - original_transaction_identifier
+                - price
+                - currency_code
+                - is_trial
+              properties:
+                original_transaction_identifier:
+                  type: string
+                  description: Apple original transaction identifier (links renewals to the first purchase)
+                  example: "2000000841136630"
+                price:
+                  type: number
+                  format: double
+                  description: Actual charged price (0.0 for a free trial)
+                  example: 9.99
+                currency_code:
+                  type: string
+                  minLength: 3
+                  maxLength: 3
+                  description: ISO 4217 3-letter currency code
+                  example: eur
+                is_trial:
+                  type: boolean
+                  description: Whether this purchase is a free trial
+
+    SubscriptionPropertiesBase:
+      type: object
+      required:
+        - product_id
+        - price
+        - currency
+        - period
+      properties:
+        product_id:
+          type: string
+          description: Store product identifier
+          example: Harmony_subscription_1_year_7d
+        transaction_id:
+          type: string
+          description: Apple originalTransactionIdentifier. Required on iOS if purchase_token is absent.
+          example: "2000000841136630"
+        purchase_token:
+          type: string
+          description: Android purchase token. Required on Android if transaction_id is absent.
+        price:
+          type: number
+          format: double
+          description: Actual charged price (0.0 for a free trial)
+          example: 44.99
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: EUR
+        period:
+          type: string
+          enum: [day, week, month, year]
+          description: Subscription billing period
+          example: year
+
+    TrialStartedPayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+            - properties
+          properties:
+            name:
+              type: string
+              enum: [trial_started]
+            properties:
+              allOf:
+                - $ref: '#/components/schemas/SubscriptionPropertiesBase'
+                - type: object
+                  required:
+                    - trial_period_days
+                  properties:
+                    trial_period_days:
+                      type: integer
+                      description: Length of the free trial in days
+                      example: 7
+                    trial_end_date:
+                      type: string
+                      format: date-time
+                      description: ISO 8601 UTC date when the trial expires
+                      example: "2026-04-28T17:14:47.000Z"
+
+    SubscriptionStartedPayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+            - properties
+          properties:
+            name:
+              type: string
+              enum: [subscription_started]
+            properties:
+              $ref: '#/components/schemas/SubscriptionPropertiesBase'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
