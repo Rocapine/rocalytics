@@ -1,0 +1,12 @@
+{
+  "name": "rocapine",
+  "owner": { "name": "Rocapine" },
+  "plugins": [
+    {
+      "name": "rocalytics-setup",
+      "source": "./plugins/rocalytics-setup",
+      "description": "Install and wire up the Rocalytics analytics client in an Expo/React Native project.",
+      "version": "1.0.0"
+    }
+  ]
+}

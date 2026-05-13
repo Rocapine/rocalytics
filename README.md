@@ -88,15 +88,28 @@ Identifiers are merged server-side onto the current `roca-id`. Send only the IDs
 
 ## Claude Code skill
 
-This repo ships a [Claude Code](https://claude.com/claude-code) skill at [`.claude/skills/rocalytics-setup`](./.claude/skills/rocalytics-setup) that scaffolds the client for you.
+This repo ships a [Claude Code](https://claude.com/claude-code) plugin that scaffolds the client for you.
 
-Drop the `.claude/skills/rocalytics-setup` directory into your project (or your global `~/.claude/skills/`), then run:
+### Install (recommended)
+
+In Claude Code:
+
+```
+/plugin marketplace add Rocapine/rocalytics
+/plugin install rocalytics-setup@rocapine
+```
+
+Then run:
 
 ```
 /rocalytics-setup
 ```
 
 Claude will install the Expo dependencies, write `utils/rocalytics.client.ts`, and show you how to wire the client into your app.
+
+### Manual install (fallback)
+
+Copy [`plugins/rocalytics-setup/skills/rocalytics-setup`](./plugins/rocalytics-setup/skills/rocalytics-setup) into your project at `.claude/skills/rocalytics-setup`, or globally at `~/.claude/skills/rocalytics-setup`.
 
 ---
 
