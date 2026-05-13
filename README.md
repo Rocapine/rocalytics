@@ -8,7 +8,11 @@ Rocalytics is delivered as a copy-paste TypeScript client, not a published npm p
 
 ## Contents
 
-- [Quickstart (Expo)](#quickstart-expo)
+- [Integration flow](#integration-flow)
+- [Step 1 — Setup](#step-1--setup)
+- [Step 2 — Identify](#step-2--identify)
+- [Step 3 — Track conversion events](#step-3--track-conversion-events)
+- [Step 4 — Share the `event_id` with Meta / TikTok / Adjust](#step-4--share-the-event_id-with-meta--tiktok--adjust)
 - [Claude Code skill](#claude-code-skill)
 - [API reference](#api-reference)
 - [Events](#events)
@@ -20,9 +24,22 @@ Rocalytics is delivered as a copy-paste TypeScript client, not a published npm p
 
 ---
 
-## Quickstart (Expo)
+## Integration flow
 
-### 1. Install dependencies
+Four steps to wire Rocalytics into your app:
+
+| # | Step | What you do |
+|---|---|---|
+| 1 | **Setup** | Install dependencies, copy the client into your project, and instantiate it once at app startup. |
+| 2 | **Identify** | Call `identify` with the user's third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, …) so Rocalytics can join events with your other analytics. |
+| 3 | **Track conversion events** | Fire `purchase` / `trial_started` / `subscription_started` from your purchase flow. Rocalytics forwards these server-side to Meta CAPI, TikTok Events API, and Adjust S2S. |
+| 4 | **Share the `event_id`** | If your app also fires conversions to Meta Pixel / TikTok Pixel / Adjust SDK client-side, pass the same `event_id` (from [`getEventId`](#cross-network-deduplication)) so the ad networks dedupe pixel ↔ server. |
+
+---
+
+## Step 1 — Setup
+
+### 1.1 Install dependencies
 
 ```bash
 npx expo install expo-application expo-crypto expo-device expo-network expo-secure-store
@@ -34,11 +51,13 @@ If you use Superwall for purchases:
 npx expo install expo-superwall
 ```
 
-### 2. Copy the client
+### 1.2 Copy the client
 
 Copy [`examples/expo/rocalytics.client.ts`](./examples/expo/rocalytics.client.ts) into your project at `utils/rocalytics.client.ts`.
 
-### 3. Instantiate once
+> Faster: run the Claude Code skill — see [Claude Code skill](#claude-code-skill) below.
+
+### 1.3 Instantiate once
 
 ```typescript
 // utils/analytics.ts
@@ -47,17 +66,31 @@ import { RocalyticsClient } from "./rocalytics.client";
 export const rocalytics = new RocalyticsClient();
 ```
 
-The constructor kicks off init in the background (it generates / loads the `roca-id`, collects device context, and fires the first-launch `install` event). You do not need to `await` it — `.track` and `.trackPurchase` await it internally.
+The constructor kicks off init in the background (generates / loads the `roca-id`, collects device context, fires the first-launch `install` event). You do not need to `await` it — `.track` and `.trackPurchase` await it internally.
 
-### 4. Track events
+---
+
+## Step 2 — Identify
+
+Call `identify` whenever you obtain a new third-party ID (Amplitude device ID, Adjust adid, RevenueCat user, IDFV/IDFA, GAID, …):
 
 ```typescript
-import { rocalytics } from "@/utils/analytics";
-
-await rocalytics.track("onboarding_completed");
+await rocalytics.identify({
+  amplitude_device_id: amplitudeDeviceId,
+  adjust_id: adjustId,
+  revenue_cat_id: revenueCatUserId,
+});
 ```
 
-### 5. Track purchases (Superwall)
+IDs are merged server-side onto the current `roca-id`. Send only the IDs you have; `null` / `undefined` values are filtered out. See [Identifiers](#identifiers) for the full list of supported IDs.
+
+---
+
+## Step 3 — Track conversion events
+
+Fire conversion events from your purchase flow. Rocalytics forwards them server-side to Meta CAPI, TikTok Events API, and Adjust S2S.
+
+### Purchases (Superwall example)
 
 ```typescript
 await rocalytics.trackPurchase({
@@ -70,19 +103,39 @@ await rocalytics.trackPurchase({
 });
 ```
 
-### 6. Attach third-party identifiers
-
-Call `identify` whenever you obtain a new ID (Amplitude device ID, Adjust adid, RevenueCat user, IDFV/IDFA, GAID, etc.):
+### Other events
 
 ```typescript
-await rocalytics.identify({
-  amplitude_device_id: amplitudeDeviceId,
-  adjust_id: adjustId,
-  revenue_cat_id: revenueCatUserId,
-});
+await rocalytics.track("onboarding_completed");
+await rocalytics.track("trial_started", { /* ... */ });
+await rocalytics.track("subscription_started", { /* ... */ });
 ```
 
-Identifiers are merged server-side onto the current `roca-id`. Send only the IDs you have; `null` / `undefined` values are filtered out.
+See [Events](#events) for the full list.
+
+---
+
+## Step 4 — Share the `event_id` with Meta / TikTok / Adjust
+
+If your app **also** fires conversion events client-side via Meta Pixel, TikTok Pixel, or the Adjust SDK, the ad network needs a shared `event_id` between the client fire and Rocalytics's server-side forward — otherwise the conversion is counted twice.
+
+Use `getEventId` to compute the same id Rocalytics uses:
+
+```typescript
+import { getEventId } from "@/utils/rocalytics.client";
+
+const eventId = getEventId("purchase", {
+  originalTransactionIdentifier: transaction.originalTransactionIdentifier,
+});
+// → "purchase-2000000841136630"
+
+// Pass eventId to:
+// - Meta Pixel `eventID` / Meta CAPI `event_id`
+// - TikTok Pixel `event_id` / Events API `event_id`
+// - Adjust SDK `callback_id`
+```
+
+See [Cross-network deduplication](#cross-network-deduplication) for full field mapping.
 
 ---
 
