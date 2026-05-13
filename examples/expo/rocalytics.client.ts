@@ -66,6 +66,34 @@ const getHeaders = (rocaId: string): Record<string, string> => ({
   "X-Platform": Platform.OS,
 });
 
+/**
+ * Returns the cross-network event id for an event, or `undefined` if the event
+ * has no transaction identifier in its properties.
+ *
+ * Use this same id as the `event_id` (Meta CAPI / Pixel), `event_id` (TikTok
+ * Events API), or `callback_id` (Adjust S2S) when you also fire the conversion
+ * to those networks client-side. Rocalytics derives the same id server-side
+ * when forwarding, so the ad network deduplicates pixel ↔ server.
+ *
+ * Format: `${name}-${originalTransactionIdentifier}`.
+ */
+export const getEventId = (
+  name: string,
+  properties?: Record<string, unknown> | null,
+): string | undefined => {
+  if (!properties) return undefined;
+  const txId =
+    (properties.original_transaction_identifier as string | undefined) ??
+    (properties.originalTransactionIdentifier as string | undefined) ??
+    (
+      properties.transaction as
+        | { originalTransactionIdentifier?: string }
+        | undefined
+    )?.originalTransactionIdentifier;
+  if (!txId) return undefined;
+  return `${name}-${txId}`;
+};
+
 export const identifyRequest = async (
   rocaId: string,
   payload: Partial<IdentifyParams>,
@@ -97,7 +125,6 @@ export const trackRequest = async (
       device_context: deviceContext,
     }),
   });
-  console.info("[ROCALYTICS] response:", deduplicationId, response.status);
   if (!response.ok) {
     throw new Error(`[ROCALYTICS] track failed: ${response.status} (${name})`);
   }
@@ -168,11 +195,6 @@ export class RocalyticsClient {
       },
     };
 
-    console.info(
-      "[ROCALYTICS] purchaseProperties",
-      this.rocaId,
-      purchaseProperties,
-    );
     await trackRequest(
       this.rocaId!,
       "purchase",

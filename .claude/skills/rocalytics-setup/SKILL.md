@@ -60,6 +60,7 @@ If the file already exists, reconcile: keep any fields or methods the user has a
 - `track(name, properties?)` fires a named event.
 - `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, …) to the current `roca-id`.
 - `trackPurchase(params)` fires a `purchase` event with deduplication keyed on `originalTransactionIdentifier`.
+- `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward.
 
 ---
 
@@ -104,6 +105,24 @@ await rocalytics.trackPurchase({
   originalTransactionIdentifier: transaction.originalTransactionIdentifier,
 });
 ```
+
+Cross-network deduplication — when the app also fires conversion events to Meta / TikTok / Adjust client-side, pass the same `event_id` so the ad network dedupes against Rocalytics's server-side forward:
+
+```typescript
+import { getEventId } from "./rocalytics.client";
+
+const eventId = getEventId("purchase", {
+  originalTransactionIdentifier: transaction.originalTransactionIdentifier,
+});
+// → "purchase-2000000841136630"
+
+// Use eventId as:
+// - Meta CAPI / Pixel `event_id`
+// - TikTok Events API `event_id`
+// - Adjust S2S `callback_id`
+```
+
+Returns `undefined` if the event has no transaction identifier — skip cross-network firing in that case.
 
 ---
 

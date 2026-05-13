@@ -16,6 +16,7 @@ Rocalytics is delivered as a copy-paste TypeScript client, not a published npm p
 - [Identifiers](#identifiers)
 - [Device context](#device-context)
 - [Deduplication](#deduplication)
+- [Cross-network deduplication](#cross-network-deduplication)
 
 ---
 
@@ -243,6 +244,42 @@ Defaults:
 - Purchase events: `${rocaId}-purchase-${originalTransactionIdentifier}` (one event per transaction, so the same purchase can be safely retried).
 
 To override, call `trackRequest` directly with a custom `deduplicationId`.
+
+---
+
+## Cross-network deduplication
+
+Rocalytics forwards purchase / trial / subscription events to ad networks (Meta CAPI, TikTok Events API, Adjust S2S) server-side. If your app **also** fires the same conversion client-side (Meta Pixel, TikTok Pixel, Adjust SDK), the ad network needs an `event_id` (or `callback_id`) shared by both calls to deduplicate them — otherwise the conversion is double-counted.
+
+The client exports a helper that returns the same id Rocalytics uses when forwarding:
+
+```typescript
+import { getEventId } from "@/utils/rocalytics.client";
+
+const eventId = getEventId("purchase", {
+  originalTransactionIdentifier: transaction.originalTransactionIdentifier,
+});
+// → "purchase-2000000841136630"
+```
+
+Pass `eventId` as:
+
+| Network | Field |
+|---|---|
+| Meta CAPI / Pixel | `event_id` |
+| TikTok Events API / Pixel | `event_id` |
+| Adjust S2S | `callback_id` |
+
+Signature:
+
+```typescript
+getEventId(
+  name: string,
+  properties?: Record<string, unknown> | null,
+): string | undefined;
+```
+
+Returns `${name}-${originalTransactionIdentifier}` if a transaction id is present in `properties` (looked up under `original_transaction_identifier`, `originalTransactionIdentifier`, or `transaction.originalTransactionIdentifier`), otherwise `undefined`. Skip the client-side network fire when it returns `undefined`.
 
 ---
 
