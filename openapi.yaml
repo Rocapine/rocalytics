@@ -58,6 +58,50 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /functions/v1/status:
+    get:
+      summary: Check event ingestion status for an application
+      description: >
+        Returns the list of received event types for the given application, with
+        the total count and the timestamp of the most recently received event.
+        Use this after setup to confirm that `install`, `onboarding_completed`,
+        and `purchase` events are being ingested.
+      parameters:
+        - name: app
+          in: query
+          required: true
+          description: The application bundle ID (e.g. com.example.app)
+          schema:
+            type: string
+            example: com.example.app
+      responses:
+        '200':
+          description: Event ingestion summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                application_id: com.rocapine.harmony
+                events:
+                  - name: install
+                    count: 491
+                    latest_received_at: "2026-06-09T15:01:09.181963+00:00"
+                  - name: onboarding_completed
+                    count: 317
+                    latest_received_at: "2026-06-09T15:03:32.445206+00:00"
+                  - name: purchase
+                    count: 69
+                    latest_received_at: "2026-06-09T15:00:21.570293+00:00"
+                  - name: trial_qualified
+                    count: 52
+                    latest_received_at: "2026-06-09T15:01:00.042557+00:00"
+                  - name: trial_cancelled
+                    count: 71
+                    latest_received_at: "2026-06-09T14:23:54.801664+00:00"
+        '400':
+          description: Missing or invalid `app` query parameter
+
   /functions/v1/track:
     post:
       summary: Track an event
@@ -310,6 +354,28 @@ components:
               enum: [subscription_started]
             properties:
               $ref: '#/components/schemas/SubscriptionPropertiesBase'
+
+    StatusResponse:
+      type: object
+      properties:
+        application_id:
+          type: string
+          example: com.example.app
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: install
+              count:
+                type: integer
+                example: 491
+              latest_received_at:
+                type: string
+                format: date-time
+                example: "2026-06-09T15:01:09.181963+00:00"
 
     ErrorResponse:
       type: object

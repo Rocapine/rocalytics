@@ -138,6 +138,41 @@ A clean result (no output) means success. Fix any type errors before reporting d
 
 ---
 
+## Check event ingestion
+
+After launching the app at least once, confirm events are reaching the Rocalytics backend:
+
+```bash
+curl "https://rocalytics-api.rocapine.io/functions/v1/status?app=YOUR_APP_ID"
+```
+
+Replace `YOUR_APP_ID` with the application bundle ID (e.g. `com.example.app`) — the same value passed as `X-Application-ID` in the client.
+
+Expected response shape:
+
+```json
+{
+  "application_id": "com.example.app",
+  "events": [
+    { "name": "install", "count": 1, "latest_received_at": "2026-06-09T15:01:09.181963+00:00" },
+    { "name": "onboarding_completed", "count": 1, "latest_received_at": "2026-06-09T15:03:32.445206+00:00" },
+    { "name": "purchase", "count": 1, "latest_received_at": "2026-06-09T15:00:21.570293+00:00" }
+  ]
+}
+```
+
+Check for these three events:
+
+| Event | Triggered by | When to expect it |
+|---|---|---|
+| `install` | First app launch (auto-tracked by client) | Immediately after first run |
+| `onboarding_completed` | `rocalytics.track("onboarding_completed")` | After user completes onboarding |
+| `purchase` | `rocalytics.trackPurchase(...)` | After a successful transaction |
+
+If an event is missing, verify the corresponding call is reached and that `X-Application-ID` matches the `app` query parameter.
+
+---
+
 ## Superwall
 
 If `expo-superwall` is present in `package.json` dependencies, run `/rocalytics-superwall` after this skill completes to wire purchase tracking into the Superwall delegate.
