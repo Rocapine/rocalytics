@@ -14,9 +14,7 @@ const KEY_INSTALL_TRACKED = "rocadata-install-tracked-4";
 export type TrackEventName =
   | "install"
   | "onboarding_completed"
-  | "purchase"
-  | "subscription_started"
-  | "trial_started";
+  | "purchase";
 
 export type PurchaseProduct = StoreProduct;
 

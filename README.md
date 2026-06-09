@@ -32,7 +32,7 @@ Four steps to wire Rocalytics into your app:
 |---|---|---|
 | 1 | **Setup** | Install dependencies, copy the client into your project, and instantiate it once at app startup. |
 | 2 | **Identify** | Call `identify` with the user's third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, …) so Rocalytics can join events with your other analytics. |
-| 3 | **Track conversion events** | Fire `purchase` / `trial_started` / `subscription_started` from your purchase flow. Rocalytics forwards these server-side to Meta CAPI, TikTok Events API, and Adjust S2S. |
+| 3 | **Track conversion events** | Fire `purchase` from your purchase flow. Rocalytics forwards these server-side to Meta CAPI, TikTok Events API, and Adjust S2S. |
 | 4 | **Share the `event_id`** | If your app also fires conversions to Meta Pixel / TikTok Pixel / Adjust SDK client-side, pass the same `event_id` (from [`getEventId`](#cross-network-deduplication)) so the ad networks dedupe pixel ↔ server. |
 
 ---
@@ -103,14 +103,6 @@ await rocalytics.trackPurchase({
 });
 ```
 
-### Other events
-
-```typescript
-await rocalytics.track("onboarding_completed");
-await rocalytics.track("trial_started", { /* ... */ });
-await rocalytics.track("subscription_started", { /* ... */ });
-```
-
 See [Events](#events) for the full list.
 
 ---
@@ -178,7 +170,7 @@ Fire a named event.
 
 | Param | Type | Notes |
 |---|---|---|
-| `name` | `TrackEventName` | One of `"install"`, `"onboarding_completed"`, `"purchase"`, `"subscription_started"`, `"trial_started"` |
+| `name` | `TrackEventName` | One of `"install"`, `"onboarding_completed"`, `"purchase"` |
 | `properties` | `Record<string, unknown>` | Optional free-form properties |
 
 ### `client.trackPurchase(params)`
@@ -224,8 +216,6 @@ type IdentifyParams = {
 | `install` | Auto-fired on first launch only (guarded by SecureStore flag) |
 | `onboarding_completed` | Fire from your app when the user finishes onboarding |
 | `purchase` | Fire via `trackPurchase` after a successful transaction |
-| `trial_started` | Fire from your app when a free trial starts |
-| `subscription_started` | Fire from your app when a paid subscription starts (non-trial) |
 
 To add a new event type, extend the `TrackEventName` union in `rocalytics.client.ts`.
 
