@@ -135,3 +135,9 @@ npx tsc --noEmit 2>&1 | grep -i rocalytics
 ```
 
 A clean result (no output) means success. Fix any type errors before reporting done.
+
+---
+
+## Superwall
+
+If `expo-superwall` is present in `package.json` dependencies, run `/rocalytics-superwall` after this skill completes to wire purchase tracking into the Superwall delegate.
