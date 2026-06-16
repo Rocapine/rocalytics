@@ -27,10 +27,27 @@ export type TrackPurchaseParams = {
   originalTransactionIdentifier: string;
 };
 
+export type AdjustAttribution = {
+  trackerToken?: string | null;
+  trackerName?: string | null;
+  network?: string | null;
+  campaign?: string | null;
+  adgroup?: string | null;
+  creative?: string | null;
+  clickLabel?: string | null;
+  adid?: string | null;
+  costType?: string | null;
+  costAmount?: number | null;
+  costCurrency?: string | null;
+  fbInstallReferrer?: string | null;
+};
+
 export type IdentifyParams = {
   revenue_cat_id?: string | null;
   adjust_id?: string | null;
+  adjust_attribution?: AdjustAttribution | null;
   user_id?: string | null;
+  email?: string | null;
   amplitude_device_id?: string | null;
   idfa?: string | null;
   idfv?: string | null;

@@ -58,7 +58,7 @@ If the file already exists, reconcile: keep any fields or methods the user has a
 - Collects device context (IP, user-agent, screen size, timezone, locale, app version, etc.).
 - Auto-tracks an `install` event on first launch (guarded by a SecureStore flag).
 - `track(name, properties?)` fires a named event.
-- `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, …) to the current `roca-id`.
+- `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, email, Adjust attribution object, …) to the current `roca-id`.
 - `trackPurchase(params)` fires a `purchase` event with deduplication keyed on `originalTransactionIdentifier`.
 - `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward.
 
@@ -123,6 +123,44 @@ const eventId = getEventId("purchase", {
 ```
 
 Returns `undefined` if the event has no transaction identifier — skip cross-network firing in that case.
+
+Attach Adjust attribution — call this from the Adjust attribution callback so Rocalytics can forward campaign data server-side:
+
+```typescript
+import type { AdjustAttribution } from "./rocalytics.client";
+
+export const setAdjustAttribution = async (
+  attribution: AdjustAttribution,
+): Promise<void> => {
+  try {
+    await rocalytics.identify({ adjust_attribution: attribution });
+  } catch (error) {
+    console.error("[Rocalytics] Failed to set adjust attribution:", error);
+  }
+};
+```
+
+Wire it into the Adjust SDK setup:
+
+```typescript
+import Adjust, { AdjustConfig } from "react-native-adjust";
+
+const config = new AdjustConfig(adjustToken, environment);
+config.setAttributionCallback(setAdjustAttribution);
+Adjust.initSdk(config);
+```
+
+Attach user email — call when the email becomes known (after sign-in, onboarding, etc.):
+
+```typescript
+export const setEmail = async (email: string): Promise<void> => {
+  try {
+    await rocalytics.identify({ email });
+  } catch (error) {
+    console.error("[Rocalytics] Failed to set email:", error);
+  }
+};
+```
 
 ---
 
