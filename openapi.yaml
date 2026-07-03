@@ -189,11 +189,18 @@ components:
             custom_event:
               type: boolean
               enum: [true]
+              description: >-
+                Marks a custom event. When true, the VALID_EVENTS gate and property
+                validation are skipped, no analytics row is written, and the event is
+                forwarded to the CRM to drive automations.
             properties:
               type: object
               additionalProperties: true
               description: Free-form; available to the CRM automation as template vars / condition operands.
 
+    # No `discriminator` here: CustomEventPayload has an arbitrary `name`, which a name-keyed
+    # discriminator can't route (and custom events discriminate on `custom_event`, not `name`).
+    # Plain oneOf validation is correct — a custom event matches only CustomEventPayload.
     TrackPayload:
       oneOf:
         - $ref: '#/components/schemas/InstallPayload'
@@ -202,14 +209,6 @@ components:
         - $ref: '#/components/schemas/TrialStartedPayload'
         - $ref: '#/components/schemas/SubscriptionStartedPayload'
         - $ref: '#/components/schemas/CustomEventPayload'
-      discriminator:
-        propertyName: name
-        mapping:
-          install: '#/components/schemas/InstallPayload'
-          paywall_presented: '#/components/schemas/PaywallPresentedPayload'
-          purchase: '#/components/schemas/PurchasePayload'
-          trial_started: '#/components/schemas/TrialStartedPayload'
-          subscription_started: '#/components/schemas/SubscriptionStartedPayload'
 
     TrackPayloadBase:
       type: object
@@ -227,14 +226,6 @@ components:
         device_context:
           type: object
           additionalProperties: true
-        custom_event:
-          type: boolean
-          description: >-
-            When true, this event is NOT stored as an analytics event: the
-            VALID_EVENTS gate and property validation are skipped and the event
-            is forwarded to the CRM to drive automations. `name` may be any
-            string. See CustomEventPayload.
-          example: false
 
     InstallPayload:
       allOf:
