@@ -173,6 +173,19 @@ Fire a named event.
 | `name` | `TrackEventName` | One of `"install"`, `"onboarding_completed"`, `"purchase"` |
 | `properties` | `Record<string, unknown>` | Optional free-form properties |
 
+### `client.trackCustomEvent(name, properties?)`
+
+Fire a **custom** event with any name. Unlike `track`, a custom event is **not** stored as a rocalytics analytics event — the backend forwards it to the CRM to drive automations (e.g. an email flow). `properties` become template variables / condition operands there. Deduplication is keyed on `${rocaId}-${name}`, so re-firing is safe.
+
+| Param | Type | Notes |
+|---|---|---|
+| `name` | `string` | Any event name your CRM automation triggers on (e.g. `"cart_abandoned"`) |
+| `properties` | `Record<string, unknown>` | Optional free-form properties, available to the automation |
+
+```typescript
+await rocalytics.trackCustomEvent("cart_abandoned", { cart_total: 42 });
+```
+
 ### `client.trackPurchase(params)`
 
 Fire a `purchase` event. Deduplication key is `${rocaId}-purchase-${originalTransactionIdentifier}`, so re-firing the same transaction is safe.
@@ -217,7 +230,9 @@ type IdentifyParams = {
 | `onboarding_completed` | Fire from your app when the user finishes onboarding |
 | `purchase` | Fire via `trackPurchase` after a successful transaction |
 
-To add a new event type, extend the `TrackEventName` union in `rocalytics.client.ts`.
+To add a new **analytics** event type, extend the `TrackEventName` union in `rocalytics.client.ts`.
+
+**Custom events** are different: any-named events fired via [`trackCustomEvent`](#clienttrackcustomeventname-properties) that the backend forwards to the CRM to trigger automations, rather than storing as analytics. No union change needed — the name is free-form.
 
 ---
 

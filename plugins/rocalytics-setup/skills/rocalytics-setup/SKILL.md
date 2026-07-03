@@ -57,7 +57,8 @@ If the file already exists, reconcile: keep any fields or methods the user has a
 - Persists a `roca-id` UUID in SecureStore (created on first launch, stable forever).
 - Collects device context (IP, user-agent, screen size, timezone, locale, app version, etc.).
 - Auto-tracks an `install` event on first launch (guarded by a SecureStore flag).
-- `track(name, properties?)` fires a named event.
+- `track(name, properties?)` fires a named analytics event.
+- `trackCustomEvent(name, properties?)` fires a custom (any-name) event that the backend forwards to the CRM to drive automations, instead of storing it as analytics. Deduped on `${rocaId}-${name}`.
 - `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, email, Adjust attribution object, …) to the current `roca-id`.
 - `trackPurchase(params)` fires a `purchase` event with deduplication keyed on `originalTransactionIdentifier`.
 - `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward.

@@ -174,6 +174,26 @@ components:
         segment_id:
           type: string
 
+    CustomEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+            - custom_event
+          properties:
+            name:
+              type: string
+              description: Any custom event name the CRM automation triggers on.
+              example: cart_abandoned
+            custom_event:
+              type: boolean
+              enum: [true]
+            properties:
+              type: object
+              additionalProperties: true
+              description: Free-form; available to the CRM automation as template vars / condition operands.
+
     TrackPayload:
       oneOf:
         - $ref: '#/components/schemas/InstallPayload'
@@ -181,6 +201,7 @@ components:
         - $ref: '#/components/schemas/PurchasePayload'
         - $ref: '#/components/schemas/TrialStartedPayload'
         - $ref: '#/components/schemas/SubscriptionStartedPayload'
+        - $ref: '#/components/schemas/CustomEventPayload'
       discriminator:
         propertyName: name
         mapping:
@@ -206,6 +227,14 @@ components:
         device_context:
           type: object
           additionalProperties: true
+        custom_event:
+          type: boolean
+          description: >-
+            When true, this event is NOT stored as an analytics event: the
+            VALID_EVENTS gate and property validation are skipped and the event
+            is forwarded to the CRM to drive automations. `name` may be any
+            string. See CustomEventPayload.
+          example: false
 
     InstallPayload:
       allOf:
