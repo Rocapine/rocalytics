@@ -174,6 +174,33 @@ components:
         segment_id:
           type: string
 
+    CustomEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/TrackPayloadBase'
+        - type: object
+          required:
+            - name
+            - custom_event
+          properties:
+            name:
+              type: string
+              description: Any custom event name the CRM automation triggers on.
+              example: cart_abandoned
+            custom_event:
+              type: boolean
+              enum: [true]
+              description: >-
+                Marks a custom event. When true, the VALID_EVENTS gate and property
+                validation are skipped, no analytics row is written, and the event is
+                forwarded to the CRM to drive automations.
+            properties:
+              type: object
+              additionalProperties: true
+              description: Free-form; available to the CRM automation as template vars / condition operands.
+
+    # No `discriminator` here: CustomEventPayload has an arbitrary `name`, which a name-keyed
+    # discriminator can't route (and custom events discriminate on `custom_event`, not `name`).
+    # Plain oneOf validation is correct — a custom event matches only CustomEventPayload.
     TrackPayload:
       oneOf:
         - $ref: '#/components/schemas/InstallPayload'
@@ -181,14 +208,7 @@ components:
         - $ref: '#/components/schemas/PurchasePayload'
         - $ref: '#/components/schemas/TrialStartedPayload'
         - $ref: '#/components/schemas/SubscriptionStartedPayload'
-      discriminator:
-        propertyName: name
-        mapping:
-          install: '#/components/schemas/InstallPayload'
-          paywall_presented: '#/components/schemas/PaywallPresentedPayload'
-          purchase: '#/components/schemas/PurchasePayload'
-          trial_started: '#/components/schemas/TrialStartedPayload'
-          subscription_started: '#/components/schemas/SubscriptionStartedPayload'
+        - $ref: '#/components/schemas/CustomEventPayload'
 
     TrackPayloadBase:
       type: object

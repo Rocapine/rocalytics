@@ -6,6 +6,14 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-07-03] — Custom events
+
+### Added
+- `trackCustomEvent(name, properties?)` on the client — fire an arbitrary-named event that the backend forwards to the CRM to drive automations (email flows, etc.) instead of storing it as an analytics event. Deduped on `${rocaId}-${name}`, so re-firing is safe.
+- `POST /functions/v1/track` accepts a `custom_event: true` flag (see `CustomEventPayload` in `openapi.yaml`): when set, the `VALID_EVENTS` gate + property validation are skipped, no analytics row is written, and the event is redirected to the CRM ingest webhook with `{ application_id, event, roca_id, properties, event_id }` (where `event_id` is the `${rocaId}-${name}` deduplication_id, stored as the CRM's `custom_events.dedup_key` for idempotency). The CRM resolves the project + recipient email and runs the matching automation.
+
+---
+
 ## [2026-06-09] — Status endpoint + subscription events removed
 
 ### Added

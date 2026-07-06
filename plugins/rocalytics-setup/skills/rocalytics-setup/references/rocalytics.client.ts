@@ -129,6 +129,9 @@ export const trackRequest = async (
   properties: Record<string, unknown>,
   deviceContext: Record<string, unknown> | null,
   deduplicationId?: string,
+  // When true, the backend does NOT store this as an analytics event — it forwards it to the CRM
+  // to drive automations. Used by `trackCustomEvent` for arbitrary (non-analytics) event names.
+  customEvent?: boolean,
 ): Promise<void> => {
   const response = await fetch(`${API_BASE}/functions/v1/track`, {
     method: "POST",
@@ -138,6 +141,7 @@ export const trackRequest = async (
       deduplication_id: deduplicationId ?? `${rocaId}-${name}`,
       properties,
       device_context: deviceContext,
+      ...(customEvent ? { custom_event: true } : {}),
     }),
   });
   if (!response.ok) {
@@ -185,6 +189,27 @@ export class RocalyticsClient {
   ): Promise<void> {
     await this.ready;
     await this.trackEvent(name, properties);
+  }
+
+  /**
+   * Fire a CUSTOM event with any name. Unlike `track`, a custom event is NOT stored as a
+   * rocalytics analytics event — the backend forwards it to the CRM to trigger automations
+   * (e.g. an email flow). `properties` become template variables / condition operands there.
+   * Deduplication is keyed on `${rocaId}-${name}`, so re-firing the same custom event is safe.
+   */
+  async trackCustomEvent(
+    name: string,
+    properties?: Record<string, unknown>,
+  ): Promise<void> {
+    await this.ready;
+    await trackRequest(
+      this.rocaId!,
+      name,
+      properties || {},
+      this.deviceContext,
+      undefined,
+      true,
+    );
   }
 
   async trackPurchase(params: TrackPurchaseParams): Promise<void> {
