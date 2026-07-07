@@ -352,6 +352,30 @@ getEventId(
 
 Returns `${name}-${originalTransactionIdentifier}` if a transaction id is present in `properties` (looked up under `original_transaction_identifier`, `originalTransactionIdentifier`, or `transaction.originalTransactionIdentifier`), otherwise `undefined`. Skip the client-side network fire when it returns `undefined`.
 
+### Naming events sent to Meta via Adjust
+
+When the app fires purchase / trial / subscribe conversions through the Adjust SDK, Adjust forwards them on to Meta. Use `getEventId` with these specific names as the `callback_id` so Meta's forwarded events dedupe against Rocalytics's server-side forward:
+
+| Event | `name` passed to `getEventId` | Resulting id |
+|---|---|---|
+| Purchase | `"user_converted"` | `user_converted-{originalTransactionIdentifier}` |
+| Trial started | `"trial_started"` | `trial_started-{originalTransactionIdentifier}` |
+| Subscribe | `"subscribe"` | `subscribe-{originalTransactionIdentifier}` |
+
+```typescript
+import Adjust, { AdjustEvent } from "react-native-adjust";
+import { getEventId } from "@/utils/rocalytics.client";
+
+const event = new AdjustEvent(adjustEventToken);
+event.setCallbackId(
+  getEventId("user_converted", {
+    originalTransactionIdentifier: transaction.originalTransactionIdentifier,
+  }),
+);
+// → "user_converted-2000000841136630"
+Adjust.trackEvent(event);
+```
+
 ---
 
 ## License

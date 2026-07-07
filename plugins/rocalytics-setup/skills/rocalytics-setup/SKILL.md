@@ -61,7 +61,7 @@ If the file already exists, reconcile: keep any fields or methods the user has a
 - `trackCustomEvent(name, properties?)` fires a custom (any-name) event that the backend forwards to the CRM to drive automations, instead of storing it as analytics. Deduped on `${rocaId}-${name}`.
 - `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, email, Adjust attribution object, …) to the current `roca-id`.
 - `trackPurchase(params)` fires a `purchase` event with deduplication keyed on `originalTransactionIdentifier`.
-- `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward.
+- `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward. Use `"user_converted"`, `"trial_started"`, or `"subscribe"` as `name` when the event is forwarded to Meta via Adjust — see below.
 
 ---
 
@@ -150,6 +150,28 @@ const config = new AdjustConfig(adjustToken, environment);
 config.setAttributionCallback(setAdjustAttribution);
 Adjust.initSdk(config);
 ```
+
+Naming events sent to Meta via Adjust — when firing a purchase / trial / subscribe event through the Adjust SDK (e.g. `AdjustEvent`), reuse `getEventId` (the same Rocalytics deduplication id) for the `callback_id`, passing the Meta-facing event name so Meta's forwarded events dedupe against Rocalytics's server-side forward:
+
+```typescript
+import Adjust, { AdjustEvent } from "react-native-adjust";
+import { getEventId } from "./rocalytics.client";
+
+const event = new AdjustEvent(adjustEventToken);
+event.setCallbackId(
+  getEventId("user_converted", {
+    originalTransactionIdentifier: transaction.originalTransactionIdentifier,
+  }),
+);
+// → "user_converted-2000000841136630"
+Adjust.trackEvent(event);
+```
+
+| Event | `name` passed to `getEventId` | Resulting id |
+|---|---|---|
+| Purchase | `"user_converted"` | `user_converted-{originalTransactionIdentifier}` |
+| Trial started | `"trial_started"` | `trial_started-{originalTransactionIdentifier}` |
+| Subscribe | `"subscribe"` | `subscribe-{originalTransactionIdentifier}` |
 
 Attach user email — call when the email becomes known (after sign-in, onboarding, etc.):
 

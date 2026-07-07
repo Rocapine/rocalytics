@@ -14,6 +14,13 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-07-01] — Meta-via-Adjust event naming
+
+### Added
+- Documented the event names to use as the Adjust `callback_id` when forwarding conversions to Meta through the Adjust SDK: `user_converted` (purchase), `trial_started` (trial start), `subscribe` (subscribe). Compute the id with the existing `getEventId(name, properties)` — no new client code required.
+
+---
+
 ## [2026-06-09] — Status endpoint + subscription events removed
 
 ### Added
