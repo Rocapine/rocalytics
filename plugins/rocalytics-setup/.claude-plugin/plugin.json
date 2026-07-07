@@ -1,7 +1,7 @@
 {
   "name": "rocalytics-setup",
   "description": "Install and wire up the Rocalytics analytics client in an Expo/React Native project.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": { "name": "Rocapine" },
   "homepage": "https://github.com/Rocapine/rocalytics",
   "repository": "https://github.com/Rocapine/rocalytics",
