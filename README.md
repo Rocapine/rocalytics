@@ -79,6 +79,7 @@ await rocalytics.identify({
   amplitude_device_id: amplitudeDeviceId,
   adjust_id: adjustId,
   revenue_cat_id: revenueCatUserId,
+  qonversion_id: qonversionUserId,
 });
 ```
 
@@ -208,6 +209,7 @@ Attach third-party identifiers to the current `roca-id`. `null` / `undefined` va
 ```typescript
 type IdentifyParams = {
   revenue_cat_id?: string | null;
+  qonversion_id?: string | null;
   adjust_id?: string | null;
   user_id?: string | null;
   amplitude_device_id?: string | null;

@@ -6,6 +6,13 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-07-08] — qonversion_id identity field
+
+### Added
+- `qonversion_id` added to `IdentifyPayload` (`openapi.yaml`) and the client's `IdentifyParams` type — pass a Qonversion user id via `rocalytics.identify({ qonversion_id })`.
+
+---
+
 ## [2026-07-03] — Custom events
 
 ### Added

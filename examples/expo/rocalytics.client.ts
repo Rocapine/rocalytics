@@ -44,6 +44,7 @@ export type AdjustAttribution = {
 
 export type IdentifyParams = {
   revenue_cat_id?: string | null;
+  qonversion_id?: string | null;
   adjust_id?: string | null;
   adjust_attribution?: AdjustAttribution | null;
   user_id?: string | null;

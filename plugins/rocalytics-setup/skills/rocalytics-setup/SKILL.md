@@ -91,6 +91,7 @@ await rocalytics.identify({
   amplitude_device_id: amplitudeDeviceId,
   adjust_id: adjustId,
   revenue_cat_id: revenueCatUserId,
+  qonversion_id: qonversionUserId,
 });
 ```
 
