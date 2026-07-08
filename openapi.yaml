@@ -155,6 +155,8 @@ components:
       properties:
         revenue_cat_id:
           type: string
+        qonversion_id:
+          type: string
         adjust_id:
           type: string
         user_id:
@@ -173,6 +175,23 @@ components:
           type: string
         segment_id:
           type: string
+        adjust_attribution:
+          type: object
+          additionalProperties: true
+          description: Raw Adjust attribution payload for the user.
+          example:
+            adgroup: "SampleApp_AND_US_BAU_video (10000000000001)"
+            network: "Off-Facebook Installs"
+            campaign: "SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101 (10000000000002)"
+            costType: ""
+            creative: "SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4 (10000000000003)"
+            clickLabel: ""
+            costAmount: 0
+            trackerName: "Off-Facebook Installs::SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101 (10000000000002)::SampleApp_AND_US_BAU_video (10000000000001)::SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4 (10000000000003)"
+            costCurrency: ""
+            jsonResponse: "{\"tracker_token\":\"abc12345\",\"tracker_name\":\"Off-Facebook Installs::SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101 (10000000000002)::SampleApp_AND_US_BAU_video (10000000000001)::SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4 (10000000000003)\",\"network\":\"Off-Facebook Installs\",\"campaign\":\"SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101 (10000000000002)\",\"adgroup\":\"SampleApp_AND_US_BAU_video (10000000000001)\",\"creative\":\"SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4 (10000000000003)\",\"fb_install_referrer\":{\"fb_auditing_token\":\"00000000000000000000000000000000\",\"fb_install_referrer\":\"{\\\"ad_id\\\":10000000000004,\\\"ad_objective_name\\\":\\\"APP_INSTALLS\\\",\\\"adgroup_id\\\":10000000000003,\\\"adgroup_name\\\":\\\"SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4\\\",\\\"campaign_id\\\":10000000000001,\\\"campaign_name\\\":\\\"SampleApp_AND_US_BAU_video\\\",\\\"campaign_group_id\\\":10000000000002,\\\"campaign_group_name\\\":\\\"SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101\\\",\\\"account_id\\\":100000000000000,\\\"is_instagram\\\":false,\\\"is_an\\\":true,\\\"publisher_platform\\\":\\\"audience_network\\\",\\\"platform_position\\\":null}\",\"fb_install_referrer_account_id\":\"100000000000000\",\"fb_install_referrer_ad_id\":\"10000000000004\",\"fb_install_referrer_ad_objective_name\":\"APP_INSTALLS\",\"fb_install_referrer_adgroup_id\":\"10000000000003\",\"fb_install_referrer_adgroup_name\":\"SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4\",\"fb_install_referrer_campaign_group_id\":\"10000000000002\",\"fb_install_referrer_campaign_group_name\":\"SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101\",\"fb_install_referrer_campaign_id\":\"10000000000001\",\"fb_install_referrer_campaign_name\":\"SampleApp_AND_US_BAU_video\",\"fb_install_referrer_publisher_platform\":\"audience_network\"},\"engagement_time\":\"2026-01-01T12:00:00Z\",\"installed_at\":\"2026-01-01T12:05:00Z\",\"first_session_time\":\"2026-01-01T12:05:00Z\",\"is_reattributed\":false,\"is_redownload_install\":true}"
+            trackerToken: "abc12345"
+            fbInstallReferrer: "{\"fb_auditing_token\":\"00000000000000000000000000000000\",\"fb_install_referrer\":\"{\\\"ad_id\\\":10000000000004,\\\"ad_objective_name\\\":\\\"APP_INSTALLS\\\",\\\"adgroup_id\\\":10000000000003,\\\"adgroup_name\\\":\\\"SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4\\\",\\\"campaign_id\\\":10000000000001,\\\"campaign_name\\\":\\\"SampleApp_AND_US_BAU_video\\\",\\\"campaign_group_id\\\":10000000000002,\\\"campaign_group_name\\\":\\\"SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101\\\",\\\"account_id\\\":100000000000000,\\\"is_instagram\\\":false,\\\"is_an\\\":true,\\\"publisher_platform\\\":\\\"audience_network\\\",\\\"platform_position\\\":null}\",\"fb_install_referrer_account_id\":\"100000000000000\",\"fb_install_referrer_ad_id\":\"10000000000004\",\"fb_install_referrer_ad_objective_name\":\"APP_INSTALLS\",\"fb_install_referrer_adgroup_id\":\"10000000000003\",\"fb_install_referrer_adgroup_name\":\"SMP_0001_C0_V1_EN_VID_AI_CP1_SAMPLE_PS_3x4\",\"fb_install_referrer_campaign_group_id\":\"10000000000002\",\"fb_install_referrer_campaign_group_name\":\"SMP_AND_META_US_ACQ_CPA_TRIAL_SCALE_APP_V1_260101\",\"fb_install_referrer_campaign_id\":\"10000000000001\",\"fb_install_referrer_campaign_name\":\"SampleApp_AND_US_BAU_video\",\"fb_install_referrer_publisher_platform\":\"audience_network\"}"
 
     CustomEventPayload:
       allOf:
