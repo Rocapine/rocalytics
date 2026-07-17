@@ -8,7 +8,7 @@ import { Dimensions, Platform } from "react-native";
 
 const API_BASE = "https://rocalytics-api.rocapine.io";
 
-const KEY_ROCA_ID = "rocalitics-roca-id";
+const KEY_ROCA_ID = "rocalytics-roca-id";
 const KEY_INSTALL_TRACKED = "rocadata-install-tracked";
 
 export type TrackEventName =

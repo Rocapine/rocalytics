@@ -275,7 +275,7 @@ Same headers. Body is a partial `IdentifyParams` object (only non-null IDs).
 The `roca-id` is the primary key for a device. It is:
 
 - A UUID generated on first launch (`Crypto.randomUUID()`).
-- Persisted in `expo-secure-store` under the key `rocalitics-roca-id`.
+- Persisted in `expo-secure-store` under the key `rocalytics-roca-id`.
 - Stable forever — survives app updates; only reset on app uninstall.
 
 Third-party IDs (Amplitude, Adjust, RevenueCat, IDFV, IDFA, GAID, …) are merged onto the `roca-id` via `identify`. This lets you join Rocalytics events with data from other analytics providers.
