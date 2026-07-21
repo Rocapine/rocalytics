@@ -62,10 +62,13 @@ paths:
     get:
       summary: Check event ingestion status for an application
       description: >
-        Returns the list of received event types for the given application, with
-        the total count and the timestamp of the most recently received event.
-        Use this after setup to confirm that `install`, `onboarding_completed`,
-        and `purchase` events are being ingested.
+        Returns the latest-received timestamp per event type for the given
+        application (overall and split by platform), plus data-quality
+        summaries: identity field fill rates, purchase event formatting, and
+        Adjust fbclid extraction rate. Use this after setup to confirm that
+        `install`, `onboarding_completed`, and `purchase` events are being
+        ingested. Set `accept: text/html` to render this as an HTML dashboard
+        instead of JSON.
       parameters:
         - name: app
           in: query
@@ -74,9 +77,16 @@ paths:
           schema:
             type: string
             example: com.example.app
+        - name: platform
+          in: query
+          required: false
+          description: Restrict the report to a single platform. Omit for both.
+          schema:
+            type: string
+            enum: [ios, android]
       responses:
         '200':
-          description: Event ingestion summary
+          description: Event ingestion and data-quality summary
           content:
             application/json:
               schema:
@@ -85,20 +95,30 @@ paths:
                 application_id: com.rocapine.harmony
                 events:
                   - name: install
-                    count: 491
-                    latest_received_at: "2026-06-09T15:01:09.181963+00:00"
-                  - name: onboarding_completed
-                    count: 317
                     latest_received_at: "2026-06-09T15:03:32.445206+00:00"
+                    latest_received_at_android: "2026-06-09T15:03:32.445206+00:00"
+                    latest_received_at_ios: "2026-06-09T14:58:11.001200+00:00"
                   - name: purchase
-                    count: 69
                     latest_received_at: "2026-06-09T15:00:21.570293+00:00"
-                  - name: trial_qualified
-                    count: 52
-                    latest_received_at: "2026-06-09T15:01:00.042557+00:00"
-                  - name: trial_cancelled
-                    count: 71
-                    latest_received_at: "2026-06-09T14:23:54.801664+00:00"
+                    latest_received_at_android: null
+                    latest_received_at_ios: "2026-06-09T15:00:21.570293+00:00"
+                identity_field_fill_percentage:
+                  ios:
+                    - field: user_id
+                      percentage: 98.4
+                    - field: idfa
+                      percentage: 41.2
+                  android:
+                    - field: user_id
+                      percentage: 97.9
+                    - field: aaid
+                      percentage: 55.6
+                purchase_well_formatted_percentage:
+                  ios: 100
+                  android: 96.7
+                fbclid_extraction_percentage:
+                  ios: 62.3
+                  android: null
         '400':
           description: Missing or invalid `app` query parameter
 
@@ -148,6 +168,66 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /functions/v1/superwall-events:
+    post:
+      summary: Track a raw Superwall event
+      description: >
+        Stores the Superwall SDK's `superwallEventInfo` payload verbatim
+        (no schema validation or transformation) into the `superwall_events`
+        table, keyed by X-Roca-ID / X-Application-ID / X-Platform. Use this
+        as a raw log of every Superwall event alongside the normalized
+        `track` events (paywall_presented, trial_started, etc.).
+      parameters:
+        - name: X-Roca-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Application-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            example: com.example.app
+        - name: X-Platform
+          in: header
+          required: true
+          schema:
+            type: string
+            example: ios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuperwallEventPayload'
+            example:
+              superwallEventInfo:
+                event:
+                  name: paywall_open
+                  createdAt: "2026-06-09T15:01:09.181963+00:00"
+                params:
+                  paywall_id: "pw_123"
+                  product_id: com.example.app.yearly
+      responses:
+        '204':
+          description: Event recorded
+        '400':
+          description: Missing required headers, invalid JSON, or missing superwallEventInfo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     IdentifyPayload:
@@ -174,6 +254,20 @@ components:
         customerio_id:
           type: string
         segment_id:
+          type: string
+        locale:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_number:
+          type: string
+        fb_login_id:
+          type: string
+        city:
+          type: string
+        country:
           type: string
         adjust_attribution:
           type: object
@@ -408,13 +502,89 @@ components:
               name:
                 type: string
                 example: install
-              count:
-                type: integer
-                example: 491
               latest_received_at:
                 type: string
                 format: date-time
+                nullable: true
+                description: Most recent received_at across both platforms.
                 example: "2026-06-09T15:01:09.181963+00:00"
+              latest_received_at_android:
+                type: string
+                format: date-time
+                nullable: true
+                example: "2026-06-09T15:01:09.181963+00:00"
+              latest_received_at_ios:
+                type: string
+                format: date-time
+                nullable: true
+                example: "2026-06-09T14:58:11.001200+00:00"
+        identity_field_fill_percentage:
+          type: object
+          description: >
+            Per-platform fill rate of each identity field, as a percentage of
+            all `identities` rows for that platform.
+          properties:
+            ios:
+              type: array
+              items:
+                $ref: '#/components/schemas/FieldFillPercentage'
+            android:
+              type: array
+              items:
+                $ref: '#/components/schemas/FieldFillPercentage'
+        purchase_well_formatted_percentage:
+          type: object
+          description: >
+            Percentage of `purchase` events per platform that carry
+            price/is_trial/product_id/currency_code/original_transaction_identifier
+            plus a recognized experimental payload (or superwallEvent). Null
+            when there are no purchase events for that platform.
+          properties:
+            ios:
+              type: number
+              nullable: true
+              example: 100
+            android:
+              type: number
+              nullable: true
+              example: 96.7
+        fbclid_extraction_percentage:
+          type: object
+          description: >
+            Percentage of identities with adjust_attribution where a fbclid
+            was extracted from jsonResponse.deeplink, out of identities that
+            have adjust_attribution. Null when there are none.
+          properties:
+            ios:
+              type: number
+              nullable: true
+              example: 62.3
+            android:
+              type: number
+              nullable: true
+              example: null
+
+    FieldFillPercentage:
+      type: object
+      properties:
+        field:
+          type: string
+          example: user_id
+        percentage:
+          type: number
+          nullable: true
+          description: Null when there are no identities for that platform.
+          example: 98.4
+
+    SuperwallEventPayload:
+      type: object
+      required:
+        - superwallEventInfo
+      properties:
+        superwallEventInfo:
+          type: object
+          additionalProperties: true
+          description: Raw Superwall SDK event payload, stored as-is.
 
     ErrorResponse:
       type: object

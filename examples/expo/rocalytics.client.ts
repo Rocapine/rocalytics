@@ -124,6 +124,22 @@ export const identifyRequest = async (
   }
 };
 
+export const superwallEventRequest = async (
+  rocaId: string,
+  superwallEventInfo: Record<string, unknown>,
+): Promise<void> => {
+  const response = await fetch(`${API_BASE}/functions/v1/superwall-events`, {
+    method: "POST",
+    headers: getHeaders(rocaId),
+    body: JSON.stringify({ superwallEventInfo }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `[ROCALYTICS] superwall-events failed: ${response.status}`,
+    );
+  }
+};
+
 export const trackRequest = async (
   rocaId: string,
   name: string,
@@ -243,6 +259,18 @@ export class RocalyticsClient {
       this.deviceContext,
       `${this.rocaId}-purchase-${originalTransactionIdentifier}`,
     );
+  }
+
+  /**
+   * Logs a raw Superwall SDK event payload verbatim, alongside the normalized
+   * `track` events. Pass the `eventInfo` from `useSuperwallEvents` /
+   * `handleSuperwallEvent` straight through.
+   */
+  async trackSuperwallEvent(
+    superwallEventInfo: Record<string, unknown>,
+  ): Promise<void> {
+    await this.ready;
+    await superwallEventRequest(this.rocaId!, superwallEventInfo);
   }
 
   private async getOrCreateRocaId(): Promise<string> {

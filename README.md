@@ -106,6 +106,25 @@ await rocalytics.trackPurchase({
 
 See [Events](#events) for the full list.
 
+### Raw event log (Superwall example, optional)
+
+To log every Superwall event verbatim (paywall opens, page views, decisions, etc.) alongside the normalized events above, wire [`useSuperwallEvents`](https://superwall.com/docs/expo/sdk-reference/hooks/useSuperwallEvents) once near the app root:
+
+```typescript
+import { useSuperwallEvents } from "expo-superwall";
+
+function RootLayout() {
+  useSuperwallEvents({
+    onSuperwallEvent: (eventInfo) => {
+      rocalytics.trackSuperwallEvent(eventInfo).catch(console.error);
+    },
+  });
+  // ...rest of the layout
+}
+```
+
+The [`/rocalytics-superwall`](./plugins/rocalytics-setup/skills/rocalytics-superwall) skill scaffolds this as a standalone bridge file.
+
 ---
 
 ## Step 4 — Share the `event_id` with Meta / TikTok / Adjust
@@ -202,6 +221,14 @@ type TrackPurchaseParams = {
 };
 ```
 
+### `client.trackSuperwallEvent(superwallEventInfo)`
+
+Logs the raw Superwall SDK event payload verbatim into `superwall_events` — no schema validation, no dedup key. Use this as a full raw log alongside the normalized `track` events (`paywall_presented`, `trial_started`, etc.).
+
+```typescript
+await rocalytics.trackSuperwallEvent(eventInfo);
+```
+
 ### `client.identify(identifiers)`
 
 Attach third-party identifiers to the current `roca-id`. `null` / `undefined` values are filtered out before sending.
@@ -267,6 +294,18 @@ Body:
 ### `POST /functions/v1/identify`
 
 Same headers. Body is a partial `IdentifyParams` object (only non-null IDs).
+
+### `POST /functions/v1/superwall-events`
+
+Same headers. Body is the raw Superwall SDK `eventInfo`, unvalidated:
+
+```json
+{
+  "superwallEventInfo": { }
+}
+```
+
+Stored verbatim into `superwall_events` — no dedup, no property validation. Use this as a raw log alongside the normalized `purchase` / `paywall_presented` / `trial_started` events from `/track`.
 
 ---
 

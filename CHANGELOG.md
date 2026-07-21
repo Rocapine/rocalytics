@@ -6,6 +6,15 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-07-21] — Raw Superwall event logging
+
+### Added
+- `POST /functions/v1/superwall-events` — stores the Superwall SDK's `superwallEventInfo` payload verbatim (no schema validation) into the `superwall_events` table, alongside the normalized `track` events. Documented in `openapi.yaml` (`SuperwallEventPayload`).
+- `client.trackSuperwallEvent(superwallEventInfo)` on the Rocalytics client, calling the new route.
+- `/rocalytics-superwall` skill — new optional Step 3 scaffolding `rocalytics-superwall-events-bridge.ts`, which forwards every `useSuperwallEvents({ onSuperwallEvent })` event to `trackSuperwallEvent`.
+
+---
+
 ## [2026-07-21] — Meta-via-Adjust purchase naming fix
 
 ### Changed — **BREAKING**

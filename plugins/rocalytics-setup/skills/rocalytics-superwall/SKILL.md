@@ -69,6 +69,29 @@ If the project does not use Sentry, replace `captureException` with `console.err
 
 ---
 
+## Step 3 — Log every raw Superwall event (optional)
+
+To keep a raw log of every Superwall event (paywall opens, page views, decisions, etc.) alongside the normalized `purchase` event, read `references/rocalytics-superwall-events-bridge.ts` and write it to `services/analytics/bridges/rocalytics-superwall-events-bridge.ts`.
+
+Call [`useSuperwallEvents`](https://superwall.com/docs/expo/sdk-reference/hooks/useSuperwallEvents) once, near the app root, passing `logSuperwallEvent` as `onSuperwallEvent`:
+
+```typescript
+import { useSuperwallEvents } from "expo-superwall";
+
+import { logSuperwallEvent } from "@/services/analytics/bridges/rocalytics-superwall-events-bridge";
+
+function RootLayout() {
+  useSuperwallEvents({
+    onSuperwallEvent: logSuperwallEvent,
+  });
+  // ...rest of the layout
+}
+```
+
+If the project already calls `useSuperwallEvents` elsewhere (e.g. from `/adjust-superwall`), add `logSuperwallEvent` inside that existing `onSuperwallEvent` callback instead of adding a second hook call — don't overwrite the existing callback, chain into it.
+
+---
+
 ## Verify
 
 ```bash
