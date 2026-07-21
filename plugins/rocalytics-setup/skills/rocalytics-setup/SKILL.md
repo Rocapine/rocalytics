@@ -61,7 +61,7 @@ If the file already exists, reconcile: keep any fields or methods the user has a
 - `trackCustomEvent(name, properties?)` fires a custom (any-name) event that the backend forwards to the CRM to drive automations, instead of storing it as analytics. Deduped on `${rocaId}-${name}`.
 - `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, email, Adjust attribution object, …) to the current `roca-id`.
 - `trackPurchase(params)` fires a `purchase` event with deduplication keyed on `originalTransactionIdentifier`.
-- `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward. Use `"user_converted"`, `"trial_started"`, or `"subscribe"` as `name` when the event is forwarded to Meta via Adjust — see below.
+- `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward. Use `"purchase"`, `"trial_started"`, or `"subscribe"` as `name` when the event is forwarded to Meta via Adjust — see below.
 
 ---
 
@@ -160,17 +160,17 @@ import { getEventId } from "./rocalytics.client";
 
 const event = new AdjustEvent(adjustEventToken);
 event.setCallbackId(
-  getEventId("user_converted", {
+  getEventId("purchase", {
     originalTransactionIdentifier: transaction.originalTransactionIdentifier,
   }),
 );
-// → "user_converted-2000000841136630"
+// → "purchase-2000000841136630"
 Adjust.trackEvent(event);
 ```
 
 | Event | `name` passed to `getEventId` | Resulting id |
 |---|---|---|
-| Purchase | `"user_converted"` | `user_converted-{originalTransactionIdentifier}` |
+| Purchase | `"purchase"` | `purchase-{originalTransactionIdentifier}` |
 | Trial started | `"trial_started"` | `trial_started-{originalTransactionIdentifier}` |
 | Subscribe | `"subscribe"` | `subscribe-{originalTransactionIdentifier}` |
 

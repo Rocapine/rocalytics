@@ -360,7 +360,7 @@ When the app fires purchase / trial / subscribe conversions through the Adjust S
 
 | Event | `name` passed to `getEventId` | Resulting id |
 |---|---|---|
-| Purchase | `"user_converted"` | `user_converted-{originalTransactionIdentifier}` |
+| Purchase | `"purchase"` | `purchase-{originalTransactionIdentifier}` |
 | Trial started | `"trial_started"` | `trial_started-{originalTransactionIdentifier}` |
 | Subscribe | `"subscribe"` | `subscribe-{originalTransactionIdentifier}` |
 
@@ -370,11 +370,11 @@ import { getEventId } from "@/utils/rocalytics.client";
 
 const event = new AdjustEvent(adjustEventToken);
 event.setCallbackId(
-  getEventId("user_converted", {
+  getEventId("purchase", {
     originalTransactionIdentifier: transaction.originalTransactionIdentifier,
   }),
 );
-// → "user_converted-2000000841136630"
+// → "purchase-2000000841136630"
 Adjust.trackEvent(event);
 ```
 

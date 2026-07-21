@@ -6,6 +6,13 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-07-21] — Meta-via-Adjust purchase naming fix
+
+### Changed — **BREAKING**
+- The `name` passed to `getEventId` for purchase conversions forwarded to Meta via Adjust is now `"purchase"`, not `"user_converted"`. `user_converted` was already retired as an analytics event name; reusing it as the Meta callback_id name was inconsistent. Update any `getEventId("user_converted", ...)` call to `getEventId("purchase", ...)`.
+
+---
+
 ## [2026-07-08] — qonversion_id identity field
 
 ### Added
@@ -24,7 +31,7 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 ## [2026-07-01] — Meta-via-Adjust event naming
 
 ### Added
-- Documented the event names to use as the Adjust `callback_id` when forwarding conversions to Meta through the Adjust SDK: `user_converted` (purchase), `trial_started` (trial start), `subscribe` (subscribe). Compute the id with the existing `getEventId(name, properties)` — no new client code required.
+- Documented the event names to use as the Adjust `callback_id` when forwarding conversions to Meta through the Adjust SDK: `purchase` (purchase), `trial_started` (trial start), `subscribe` (subscribe). Compute the id with the existing `getEventId(name, properties)` — no new client code required.
 
 ---
 
