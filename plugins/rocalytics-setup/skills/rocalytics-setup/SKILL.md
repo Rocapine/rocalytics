@@ -1,6 +1,6 @@
 ---
 name: rocalytics-setup
-description: Install and wire up the Rocalytics analytics client in an Expo/React Native project. Use this whenever the user wants to add Rocalytics tracking, set up the rocalytics client, or mentions rocalytics in any context — even if they just say "add rocalytics" or "set up rocalytics". Scaffolds utils/rocalytics.client.ts and instantiates the client at app startup.
+description: Install and wire up the Rocalytics analytics client in an Expo/React Native project. Use this whenever the user wants to add Rocalytics tracking, set up the rocalytics client, or mentions rocalytics in any context — even if they just say "add rocalytics" or "set up rocalytics". Scaffolds utils/rocalytics.client.ts, instantiates the client at app startup, and — if the project uses expo-superwall — also wires Superwall purchase/event tracking (invokes rocalytics-superwall).
 user-invocable: true
 allowed-tools:
   - Read
@@ -20,11 +20,13 @@ Arguments: `$ARGUMENTS`
 
 ## Overview
 
-Two steps:
+Five steps:
 
 1. Install required Expo dependencies.
 2. Scaffold `utils/rocalytics.client.ts` from the reference file.
 3. Instantiate `RocalyticsClient` once at app startup and call `.track(...)` / `.trackPurchase(...)` from app code.
+4. Check for Superwall. If `expo-superwall` is a dependency, immediately invoke `/rocalytics-superwall` as part of this same run — do not stop after step 3 and wait to be asked separately.
+5. Check for Adjust subscription tracking. If `react-native-adjust` is also a dependency, verify whether Adjust subscription tracking on Superwall purchases is already implemented; if not, offer to scaffold it.
 
 ---
 
@@ -188,6 +190,30 @@ export const setEmail = async (email: string): Promise<void> => {
 
 ---
 
+## Step 4 — Wire Superwall (conditional, do not skip)
+
+Check `package.json` for an `expo-superwall` dependency (or ask the user if the project uses Superwall for purchases).
+
+If it's present, **invoke the `/rocalytics-superwall` skill now**, in this same run, before reporting the setup as done. It wires `trackPurchase` into the Superwall delegate, and optionally a raw event log via `useSuperwallEvents`. Do not treat this as optional follow-up work the user has to ask for separately — a Superwall project without it is missing purchase tracking.
+
+If `expo-superwall` is not present and the user hasn't mentioned another purchase SDK, ask how purchases are tracked before skipping this step.
+
+---
+
+## Step 5 — Check Adjust subscription tracking (conditional, do not skip)
+
+Check `package.json` for a `react-native-adjust` dependency. Skip this step entirely if it's absent.
+
+If present, search the project for existing Adjust subscription tracking on Superwall purchases:
+
+- `services/analytics/bridges/adjust-superwall-bridge.ts` (the file `/adjust-superwall` scaffolds), or
+- any call to `Adjust.trackAppStoreSubscription` / `Adjust.trackPlayStoreSubscription` (project may have wired this by hand, under a different path).
+
+- **Already implemented** — leave it as is. Do not overwrite, refactor, or "reconcile" it uninvited; just note in your report that Adjust subscription tracking is already wired.
+- **Not implemented** — ask the user whether to scaffold it now via `/adjust-superwall`. Don't invoke it silently like Step 4's `/rocalytics-superwall` — Adjust subscription tracking is a separate concern from Rocalytics (it forwards to Adjust, not to Rocalytics), so it's the user's call whether they want it.
+
+---
+
 ## Verify
 
 Type-check the project:
@@ -232,9 +258,3 @@ Check for these three events:
 | `purchase` | `rocalytics.trackPurchase(...)` | After a successful transaction |
 
 If an event is missing, verify the corresponding call is reached and that `X-Application-ID` matches the `app` query parameter.
-
----
-
-## Superwall
-
-If `expo-superwall` is present in `package.json` dependencies, run `/rocalytics-superwall` after this skill completes to wire purchase tracking into the Superwall delegate.

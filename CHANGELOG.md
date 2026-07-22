@@ -6,6 +6,20 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-07-21] — Check for Adjust subscription tracking during setup
+
+### Added
+- `/rocalytics-setup` Step 5: if `react-native-adjust` is a dependency, checks whether Adjust subscription tracking on Superwall purchases is already implemented (`adjust-superwall-bridge.ts` or a direct `trackAppStoreSubscription`/`trackPlayStoreSubscription` call). If it's already there, leaves it alone; if not, asks the user whether to scaffold it via `/adjust-superwall` (not invoked silently, unlike the Rocalytics/Superwall wiring in Step 4 — this forwards to Adjust, not Rocalytics, so it's opt-in).
+
+---
+
+## [2026-07-21] — Fix: /rocalytics-setup silently skipping Superwall wiring
+
+### Changed
+- `/rocalytics-setup` had a trailing "if expo-superwall is present, run /rocalytics-superwall" note at the very end of the skill, easy to miss and not enforced — in practice it was skipped and Superwall purchase/event tracking wasn't wired. Promoted to a required Step 4 in the main flow: check `package.json` for `expo-superwall` and invoke `/rocalytics-superwall` in the same run before reporting done.
+
+---
+
 ## [2026-07-21] — Raw Superwall event logging
 
 ### Added

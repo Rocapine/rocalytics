@@ -6,7 +6,7 @@
       "name": "rocalytics-setup",
       "source": "./plugins/rocalytics-setup",
       "description": "Install and wire up the Rocalytics analytics client in an Expo/React Native project.",
-      "version": "1.4.0"
+      "version": "1.5.0"
     }
   ]
 }
