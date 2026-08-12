@@ -229,6 +229,21 @@ Logs the raw Superwall SDK event payload verbatim into `superwall_events` — no
 await rocalytics.trackSuperwallEvent(eventInfo);
 ```
 
+### `client.trackOnboarding(stepId, answers?, metadata?)`
+
+Send the full step-by-step onboarding snapshot on every navigation change (entering a step, answering a question, moving to the next step). The client keeps the running snapshot internally and re-sends it in full each call; the backend upserts the latest snapshot per `roca-id`, keyed by `sent_at` so an out-of-order retry can't clobber a later step.
+
+Calling with the same `stepId` as the current step merges `answers` into it without closing it out. Calling with a different `stepId` closes out the previous step (`exited_at`) and opens the new one.
+
+```typescript
+await rocalytics.trackOnboarding("welcome");
+await rocalytics.trackOnboarding("goal", { goal: "lose_weight" }, {
+  onboarding_id: "onb_123",
+});
+```
+
+The [`/rocalytics-onboarding`](./plugins/rocalytics-setup/skills/rocalytics-onboarding) skill wires this into a project's existing onboarding flow.
+
 ### `client.identify(identifiers)`
 
 Attach third-party identifiers to the current `roca-id`. `null` / `undefined` values are filtered out before sending.
@@ -306,6 +321,23 @@ Same headers. Body is the raw Superwall SDK `eventInfo`, unvalidated:
 ```
 
 Stored verbatim into `superwall_events` — no dedup, no property validation. Use this as a raw log alongside the normalized `purchase` / `paywall_presented` / `trial_started` events from `/track`.
+
+### `POST /functions/v1/onboarding-response`
+
+Same headers. Requires the identity to already exist (call `/identify` first, or rely on the client's init, which identifies before this can fire) — 404s otherwise. Body:
+
+```json
+{
+  "onboarding_metadata": { "onboarding_id": "onb_123" },
+  "sent_at": "2026-08-07T10:00:20.100Z",
+  "responses": [
+    { "step_id": "welcome", "entered_at": "2026-08-07T10:00:00.000Z", "exited_at": "2026-08-07T10:00:12.500Z", "answers": {} },
+    { "step_id": "goal", "entered_at": "2026-08-07T10:00:12.500Z", "exited_at": null, "answers": { "goal": "lose_weight" } }
+  ]
+}
+```
+
+Each call sends the **full** snapshot — every step seen so far, not a diff. Upserted per `roca-id`; a call with an older `sent_at` than what's stored is dropped as a stale retry.
 
 ---
 

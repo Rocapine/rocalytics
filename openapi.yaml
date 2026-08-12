@@ -228,6 +228,199 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /functions/v1/demand-score:
+    post:
+      summary: Get the demand score of an identity
+      description: >
+        Computes a 1-100 demand score (likelihood to convert to a paying customer)
+        from signals derived from the rocalytics database for the given Roca ID,
+        optionally refined by client-provided device and usage signals in the body.
+        All body parameters are optional; client values take precedence over
+        database-derived fallbacks.
+      parameters:
+        - name: X-Roca-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Platform
+          in: header
+          required: false
+          schema:
+            type: string
+            enum: [ios, android]
+          description: Falls back to the platform stored on the identity.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_model:
+                  type: string
+                  example: iPhone16,1
+                device_release_year:
+                  type: integer
+                  example: 2023
+                os_version:
+                  type: string
+                  example: "26.0"
+                connection_type:
+                  type: string
+                  enum: [wifi, cellular, other]
+                store_country:
+                  type: string
+                  example: US
+                  description: App Store storefront country (ISO 3166-1 alpha-2).
+                app_open_count:
+                  type: integer
+                  example: 37
+                  description: SDK-local count of app opens (not tracked server-side).
+                paywall_view_count:
+                  type: integer
+                  example: 2
+                  description: SDK-local count of paywall views.
+                locale:
+                  type: string
+                  example: en_US
+      responses:
+        '200':
+          description: Demand score computed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  demandScore:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    example: 73
+                  coldStart:
+                    type: boolean
+                    description: True when the identity has no event history yet.
+                  signals:
+                    type: array
+                    description: Per-signal explainability breakdown.
+                    items:
+                      type: object
+                      properties:
+                        signal:
+                          type: string
+                          example: paywallViews
+                        value:
+                          type: [number, "null"]
+                          description: Normalized 0-1 sub-score; null when unavailable.
+                        weight:
+                          type: number
+                          example: 14
+                        weighted:
+                          type: number
+                          description: Contribution to the score after weight renormalization.
+        '400':
+          description: Missing X-Roca-ID header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No identity found for the provided X-Roca-ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /functions/v1/onboarding-response:
+    post:
+      summary: Upsert a user's onboarding step-by-step responses
+      description: >
+        Stores the full onboarding progress snapshot for a Roca ID: one row
+        per user in `onboarding_responses`, keyed by X-Roca-ID. Send the
+        complete `responses` array — every step seen so far, in order — on
+        every step transition, not just a single entry once the onboarding
+        finishes. Each call overwrites the previous snapshot, but only if its
+        `sent_at` is newer than what's stored, so an out-of-order retry can't
+        clobber a later step's data. The identity must already exist (call
+        `/identify` first) or this returns 404.
+      parameters:
+        - name: X-Roca-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Application-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            example: com.example.app
+        - name: X-Platform
+          in: header
+          required: true
+          schema:
+            type: string
+            example: ios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnboardingResponsePayload'
+            example:
+              onboarding_metadata:
+                onboarding_id: "onb_123"
+                audience_id: "aud_456"
+                deployment_id: "dep_789"
+              sent_at: "2026-08-07T10:00:20.100Z"
+              responses:
+                - step_id: welcome
+                  entered_at: "2026-08-07T10:00:00.000Z"
+                  exited_at: "2026-08-07T10:00:12.500Z"
+                  answers: {}
+                - step_id: goal
+                  entered_at: "2026-08-07T10:00:12.500Z"
+                  exited_at: "2026-08-07T10:00:20.100Z"
+                  answers:
+                    goal: lose_weight
+                - step_id: age
+                  entered_at: "2026-08-07T10:00:20.100Z"
+                  exited_at: null
+                  answers: {}
+      responses:
+        '204':
+          description: Snapshot stored (or dropped as a stale retry)
+        '400':
+          description: Missing required headers, invalid JSON, or responses is not an array
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No identity found for the provided X-Roca-ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     IdentifyPayload:
@@ -272,7 +465,10 @@ components:
         adjust_attribution:
           type: object
           additionalProperties: true
-          description: Raw Adjust attribution payload for the user.
+          description: >-
+            Raw Adjust attribution payload for the user. Must include these 12 keys:
+            adgroup, network, campaign, costType, creative, clickLabel, costAmount,
+            trackerName, costCurrency, jsonResponse, trackerToken, fbInstallReferrer.
           example:
             adgroup: "SampleApp_AND_US_BAU_video (10000000000001)"
             network: "Off-Facebook Installs"
@@ -503,20 +699,17 @@ components:
                 type: string
                 example: install
               latest_received_at:
-                type: string
+                type: [string, "null"]
                 format: date-time
-                nullable: true
                 description: Most recent received_at across both platforms.
                 example: "2026-06-09T15:01:09.181963+00:00"
               latest_received_at_android:
-                type: string
+                type: [string, "null"]
                 format: date-time
-                nullable: true
                 example: "2026-06-09T15:01:09.181963+00:00"
               latest_received_at_ios:
-                type: string
+                type: [string, "null"]
                 format: date-time
-                nullable: true
                 example: "2026-06-09T14:58:11.001200+00:00"
         identity_field_fill_percentage:
           type: object
@@ -541,12 +734,10 @@ components:
             when there are no purchase events for that platform.
           properties:
             ios:
-              type: number
-              nullable: true
+              type: [number, "null"]
               example: 100
             android:
-              type: number
-              nullable: true
+              type: [number, "null"]
               example: 96.7
         fbclid_extraction_percentage:
           type: object
@@ -556,12 +747,10 @@ components:
             have adjust_attribution. Null when there are none.
           properties:
             ios:
-              type: number
-              nullable: true
+              type: [number, "null"]
               example: 62.3
             android:
-              type: number
-              nullable: true
+              type: [number, "null"]
               example: null
 
     FieldFillPercentage:
@@ -571,8 +760,7 @@ components:
           type: string
           example: user_id
         percentage:
-          type: number
-          nullable: true
+          type: [number, "null"]
           description: Null when there are no identities for that platform.
           example: 98.4
 
@@ -585,6 +773,65 @@ components:
           type: object
           additionalProperties: true
           description: Raw Superwall SDK event payload, stored as-is.
+
+    OnboardingResponsePayload:
+      type: object
+      required:
+        - responses
+      properties:
+        onboarding_metadata:
+          type: object
+          additionalProperties: true
+          description: >-
+            Free-form context about which onboarding was shown, e.g.
+            onboarding_id, audience_id, deployment_id, template_version,
+            locale. Stored as-is.
+          example:
+            onboarding_id: "onb_123"
+            audience_id: "aud_456"
+            deployment_id: "dep_789"
+        sent_at:
+          type: string
+          format: date-time
+          description: >-
+            When this snapshot was produced client-side. Defaults to the
+            server's receive time if omitted, which defeats the
+            stale-retry guard — the SDK should always send it.
+        responses:
+          type: array
+          description: >-
+            Every step seen so far, in order — the full snapshot, not a
+            diff. The last entry with `exited_at: null` is the step the
+            user currently sits on (or abandoned on, if the onboarding
+            never completed).
+          items:
+            $ref: '#/components/schemas/OnboardingStep'
+
+    OnboardingStep:
+      type: object
+      required:
+        - step_id
+        - entered_at
+      properties:
+        step_id:
+          type: string
+          description: The Onboarding Studio step identifier.
+          example: goal
+        entered_at:
+          type: string
+          format: date-time
+        exited_at:
+          type: [string, "null"]
+          format: date-time
+          description: Null while the step is still in progress.
+        answers:
+          type: object
+          additionalProperties: true
+          description: >-
+            Answer value per question/element id on this step. Empty
+            object for steps with no question (e.g. an info screen).
+          example:
+            goal: lose_weight
 
     ErrorResponse:
       type: object
