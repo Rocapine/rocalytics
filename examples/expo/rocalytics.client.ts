@@ -42,6 +42,23 @@ export type AdjustAttribution = {
   fbInstallReferrer?: string | null;
 };
 
+export type OnboardingStepAnswers = Record<string, unknown>;
+
+export type OnboardingMetadata = Record<string, unknown>;
+
+export type OnboardingStepResponse = {
+  step_id: string;
+  entered_at: string;
+  exited_at: string | null;
+  answers: OnboardingStepAnswers;
+};
+
+export type OnboardingResponsePayload = {
+  onboarding_metadata?: OnboardingMetadata;
+  sent_at: string;
+  responses: OnboardingStepResponse[];
+};
+
 export type IdentifyParams = {
   revenue_cat_id?: string | null;
   qonversion_id?: string | null;
@@ -140,6 +157,25 @@ export const superwallEventRequest = async (
   }
 };
 
+export const onboardingResponseRequest = async (
+  rocaId: string,
+  payload: OnboardingResponsePayload,
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE}/functions/v1/onboarding-response`,
+    {
+      method: "POST",
+      headers: getHeaders(rocaId),
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `[ROCALYTICS] onboarding-response failed: ${response.status}`,
+    );
+  }
+};
+
 export const trackRequest = async (
   rocaId: string,
   name: string,
@@ -169,6 +205,8 @@ export const trackRequest = async (
 export class RocalyticsClient {
   rocaId: string | null = null;
   private deviceContext: DeviceContext | null = null;
+  private onboardingMetadata: OnboardingMetadata | null = null;
+  private onboardingResponses: OnboardingStepResponse[] = [];
   readonly ready: Promise<void>;
 
   constructor() {
@@ -271,6 +309,48 @@ export class RocalyticsClient {
   ): Promise<void> {
     await this.ready;
     await superwallEventRequest(this.rocaId!, superwallEventInfo);
+  }
+
+  /**
+   * Call on every onboarding navigation change — entering a step, answering
+   * a question, or moving to the next one. Sends the full step-by-step
+   * snapshot seen so far; the backend upserts the latest snapshot for this
+   * roca-id, so there's no need to batch or debounce calls.
+   *
+   * Pass `metadata` (onboarding_id, audience_id, deployment_id, ...) on any
+   * call where it's known — it's merged into whatever was sent before.
+   */
+  async trackOnboarding(
+    stepId: string,
+    answers?: OnboardingStepAnswers,
+    metadata?: OnboardingMetadata,
+  ): Promise<void> {
+    await this.ready;
+
+    if (metadata) {
+      this.onboardingMetadata = { ...this.onboardingMetadata, ...metadata };
+    }
+
+    const now = new Date().toISOString();
+    const current =
+      this.onboardingResponses[this.onboardingResponses.length - 1];
+    if (current && current.step_id === stepId) {
+      if (answers) current.answers = { ...current.answers, ...answers };
+    } else {
+      if (current && current.exited_at === null) current.exited_at = now;
+      this.onboardingResponses.push({
+        step_id: stepId,
+        entered_at: now,
+        exited_at: null,
+        answers: answers ?? {},
+      });
+    }
+
+    await onboardingResponseRequest(this.rocaId!, {
+      onboarding_metadata: this.onboardingMetadata ?? undefined,
+      sent_at: now,
+      responses: this.onboardingResponses,
+    });
   }
 
   private async getOrCreateRocaId(): Promise<string> {

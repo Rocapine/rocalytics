@@ -63,6 +63,7 @@ If the file already exists, reconcile: keep any fields or methods the user has a
 - `trackCustomEvent(name, properties?)` fires a custom (any-name) event that the backend forwards to the CRM to drive automations, instead of storing it as analytics. Deduped on `${rocaId}-${name}`.
 - `identify(identifiers)` attaches third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, email, Adjust attribution object, …) to the current `roca-id`.
 - `trackPurchase(params)` fires a `purchase` event with deduplication keyed on `originalTransactionIdentifier`.
+- `trackOnboarding(stepId, answers?, metadata?)` sends the full step-by-step onboarding snapshot on every navigation change; the backend upserts the latest snapshot per roca-id. See `/rocalytics-onboarding` to wire this into the project's onboarding flow.
 - `getEventId(name, properties)` returns `${name}-${originalTransactionIdentifier}` — pass this as `event_id` (Meta CAPI/Pixel, TikTok Events API) or `callback_id` (Adjust S2S) when firing the same conversion to those networks so they dedupe client pixel ↔ Rocalytics server forward. Use `"purchase"`, `"trial_started"`, or `"subscribe"` as `name` when the event is forwarded to Meta via Adjust — see below.
 
 ---
@@ -211,6 +212,14 @@ If present, search the project for existing Adjust subscription tracking on Supe
 
 - **Already implemented** — leave it as is. Do not overwrite, refactor, or "reconcile" it uninvited; just note in your report that Adjust subscription tracking is already wired.
 - **Not implemented** — ask the user whether to scaffold it now via `/adjust-superwall`. Don't invoke it silently like Step 4's `/rocalytics-superwall` — Adjust subscription tracking is a separate concern from Rocalytics (it forwards to Adjust, not to Rocalytics), so it's the user's call whether they want it.
+
+---
+
+## Step 6 — Onboarding step tracking (offer, don't auto-invoke)
+
+Check whether the project has an onboarding flow (screens/routes named `onboarding`, `welcome`, `intro`, `getting-started`, or a `@rocapine/react-native-onboarding` dependency).
+
+If it does, ask the user whether to wire step-by-step onboarding tracking now via `/rocalytics-onboarding`. Unlike Step 4's Superwall wiring, don't invoke it silently — locating the right navigation call sites is project-specific and worth confirming with the user first.
 
 ---
 
