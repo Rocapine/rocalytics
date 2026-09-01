@@ -73,6 +73,7 @@ export type IdentifyParams = {
   customerio_id?: string | null;
   segment_id?: string | null;
   gaid?: string | null;
+  locale?: string;
 };
 
 type DeviceContext = {
@@ -222,7 +223,13 @@ export class RocalyticsClient {
           : null;
       const androidId =
         Platform.OS === "android" ? Application.getAndroidId() : null;
-      await this.identify({ idfv: idfv, android_id: androidId });
+      // Report the device locale so server-side email localisation has it on the identity, not
+      // just inside each event's device_context.
+      await this.identify({
+        idfv: idfv,
+        android_id: androidId,
+        locale: Intl.DateTimeFormat().resolvedOptions().locale,
+      });
 
       this.deviceContext = await this.getDeviceContext();
 
