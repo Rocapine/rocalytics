@@ -25,9 +25,6 @@ export type TrackPurchaseParams = {
   currency: string;
   productId: string;
   originalTransactionIdentifier: string;
-  // Raw purchase source, forwarded in `experimental`. Exactly one is set:
-  // `product`/`transaction` on the native StoreKit/Play path, `redemptionResult`
-  // on the Superwall web-checkout (Stripe) path, which has neither.
   product?: PurchaseProduct;
   transaction?: StoreTransaction;
   redemptionResult?: RedemptionResult;
@@ -289,17 +286,12 @@ export class RocalyticsClient {
     const purchaseProperties: Record<string, unknown> = {
       is_trial: isTrial,
       original_transaction_identifier: originalTransactionIdentifier,
-      // Taken from the caller, not `product.productIdentifier`: a Stripe
-      // web-checkout purchase carries no store product at all.
       product_id: productId,
       price: value,
       currency_code: currency,
       experimental: {
         product,
         transaction,
-        // Read server-side by /track to capture the purchaser's email + Stripe
-        // customer id onto the identity, so later Stripe webhooks resolve to this
-        // roca_id. The snake_case key is what the server looks for.
         redemption_result: redemptionResult,
       },
     };
