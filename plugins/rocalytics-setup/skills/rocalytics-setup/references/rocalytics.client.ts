@@ -3,6 +3,7 @@ import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import * as Network from "expo-network";
 import * as SecureStore from "expo-secure-store";
+import type { RedemptionResult } from "expo-superwall";
 import type { StoreProduct, StoreTransaction } from "expo-superwall/compat";
 import { Dimensions, Platform } from "react-native";
 
@@ -21,10 +22,15 @@ export type PurchaseProduct = StoreProduct;
 export type TrackPurchaseParams = {
   isTrial: boolean;
   value: number;
-  product: PurchaseProduct;
-  transaction: StoreTransaction;
   currency: string;
+  productId: string;
   originalTransactionIdentifier: string;
+  // Raw purchase source, forwarded in `experimental`. Exactly one is set:
+  // `product`/`transaction` on the native StoreKit/Play path, `redemptionResult`
+  // on the Superwall web-checkout (Stripe) path, which has neither.
+  product?: PurchaseProduct;
+  transaction?: StoreTransaction;
+  redemptionResult?: RedemptionResult;
 };
 
 export type AdjustAttribution = {
@@ -272,21 +278,29 @@ export class RocalyticsClient {
     const {
       isTrial,
       value,
-      product,
       currency,
+      productId,
       originalTransactionIdentifier,
+      product,
       transaction,
+      redemptionResult,
     } = params;
 
     const purchaseProperties: Record<string, unknown> = {
       is_trial: isTrial,
       original_transaction_identifier: originalTransactionIdentifier,
-      product_id: product.productIdentifier,
+      // Taken from the caller, not `product.productIdentifier`: a Stripe
+      // web-checkout purchase carries no store product at all.
+      product_id: productId,
       price: value,
       currency_code: currency,
       experimental: {
         product,
         transaction,
+        // Read server-side by /track to capture the purchaser's email + Stripe
+        // customer id onto the identity, so later Stripe webhooks resolve to this
+        // roca_id. The snake_case key is what the server looks for.
+        redemption_result: redemptionResult,
       },
     };
 

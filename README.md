@@ -32,7 +32,7 @@ Four steps to wire Rocalytics into your app:
 |---|---|---|
 | 1 | **Setup** | Install dependencies, copy the client into your project, and instantiate it once at app startup. |
 | 2 | **Identify** | Call `identify` with the user's third-party IDs (Amplitude, Adjust, RevenueCat, IDFV/IDFA, GAID, …) so Rocalytics can join events with your other analytics. |
-| 3 | **Track conversion events** | Fire `purchase` from your purchase flow. Rocalytics forwards these server-side to Meta CAPI, TikTok Events API, and Adjust S2S. |
+| 3 | **Track conversion events** | Fire `purchase` from your purchase flow. Rocalytics forwards these server-side to Meta CAPI. |
 | 4 | **Share the `event_id`** | If your app also fires conversions to Meta Pixel / TikTok Pixel / Adjust SDK client-side, pass the same `event_id` (from [`getEventId`](#cross-network-deduplication)) so the ad networks dedupe pixel ↔ server. |
 
 ---
@@ -393,7 +393,9 @@ To override, call `trackRequest` directly with a custom `deduplicationId`.
 
 ## Cross-network deduplication
 
-Rocalytics forwards purchase / trial / subscription events to ad networks (Meta CAPI, TikTok Events API, Adjust S2S) server-side. If your app **also** fires the same conversion client-side (Meta Pixel, TikTok Pixel, Adjust SDK), the ad network needs an `event_id` (or `callback_id`) shared by both calls to deduplicate them — otherwise the conversion is double-counted.
+Rocalytics forwards purchase / trial / subscription events server-side to **Meta CAPI**. If your app **also** fires the same conversion client-side (Meta SDK / Pixel), Meta needs an `event_id` shared by both calls to deduplicate them — otherwise the conversion is double-counted.
+
+> **Only Meta CAPI is wired today.** `/track`'s fan-out dispatches `meta-capi` and nothing else — there is no Adjust S2S and no TikTok Events API forward in the project. An `event_id` you set on an Adjust or TikTok event therefore has no server-side counterpart to dedupe against; it only matters where Adjust forwards the event onward to Meta.
 
 The client exports a helper that returns the same id Rocalytics uses when forwarding:
 
@@ -408,11 +410,11 @@ const eventId = getEventId("purchase", {
 
 Pass `eventId` as:
 
-| Network | Field |
-|---|---|
-| Meta CAPI / Pixel | `event_id` |
-| TikTok Events API / Pixel | `event_id` |
-| Adjust S2S | `callback_id` |
+| Network | Field | Server-side counterpart exists? |
+|---|---|---|
+| Meta CAPI / SDK | `event_id` | **yes** — this is the one that matters |
+| Adjust SDK | `setDeduplicationId` (Adjust's dedup field; `setCallbackId` is *not* one) | no — but Adjust forwards `event_id` as a partner parameter to Meta |
+| TikTok | `event_id` | no |
 
 Signature:
 
@@ -424,6 +426,22 @@ getEventId(
 ```
 
 Returns `${name}-${originalTransactionIdentifier}` if a transaction id is present in `properties` (looked up under `original_transaction_identifier`, `originalTransactionIdentifier`, or `transaction.originalTransactionIdentifier`), otherwise `undefined`. Skip the client-side network fire when it returns `undefined`.
+
+`name` is used **verbatim** as the prefix — this helper does not normalize it. Pass exactly the prefix the server sends, or the ids differ and Meta silently stops deduplicating.
+
+### ⚠️ Per-app prefix overrides — check yours before passing a name
+
+`meta-capi` does not always use the kind name as the prefix. Apps wired up before the prefixes were standardized keep a legacy prefix, because it is the one already live in their Meta Events Manager and renaming it would break existing dedup/attribution. The override lives in `meta-capi/event_id.ts`:
+
+| App | prefix for the `purchase` kind |
+|---|---|
+| `com.applostudio.Unchaind` | `9xiipt` (its Adjust "user converted" token) |
+| `com.rocapine.harmony` | `user_converted` |
+| everything else | `purchase` (the standard) |
+
+So on Unchaind, the correct client-side call is `getEventId("9xiipt", …)` — **not** `getEventId("purchase", …)`.
+
+This is not hypothetical: in July 2026 Unchaind's client was changed to send `purchase-<tx>` from Adjust and `user_converted-<tx>` (Harmony's prefix, copy-pasted) from the Meta SDK. Neither matched `9xiipt-<tx>`, and Meta double-counted every purchase for about seven weeks — 5498 events in the last 30 days alone. Pin the expected id in a test on the app side; nothing here can catch the drift for you.
 
 ### Naming events sent to Meta via Adjust
 
