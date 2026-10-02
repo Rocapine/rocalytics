@@ -8,6 +8,9 @@ import { Dimensions, Platform } from "react-native";
 
 const API_BASE = "https://rocalytics-api.rocapine.io";
 
+// Never rename this key in a shipped app: every user would get a new rocaId, and the rocaId is the
+// Superwall / RevenueCat PK (a new one = a Superwall reset and a new RevenueCat customer). Apps
+// created from rocapine/app-template use "rocalitics-roca-id"; keep whichever the app already has.
 const KEY_ROCA_ID = "rocalytics-roca-id";
 const KEY_INSTALL_TRACKED = "rocadata-install-tracked";
 
@@ -205,18 +208,26 @@ export const trackRequest = async (
 
 export class RocalyticsClient {
   rocaId: string | null = null;
+  /** True only when SecureStore was read and held no rocaId (fresh install), not on a failed read. */
+  isNewRocaId = false;
+  /** True when SecureStore could not be read or written: the rocaId lives for this launch only. */
+  isTemporaryRocaId = false;
+  private pendingRocaIdWrite = false;
+  /** Resolves from SecureStore only, no network. Never resolves to null. */
+  readonly rocaIdReady: Promise<string>;
   private deviceContext: DeviceContext | null = null;
   private onboardingMetadata: OnboardingMetadata | null = null;
   private onboardingResponses: OnboardingStepResponse[] = [];
   readonly ready: Promise<void>;
 
   constructor() {
+    this.rocaIdReady = this.getOrCreateRocaId();
     this.ready = this.init();
   }
 
   private async init(): Promise<void> {
     try {
-      this.rocaId = await this.getOrCreateRocaId();
+      const rocaId = await this.rocaIdReady;
       const idfv =
         Platform.OS === "ios"
           ? await Application.getIosIdForVendorAsync()
@@ -240,6 +251,8 @@ export class RocalyticsClient {
         await this.trackEvent("install", { install_time: installTime });
         await SecureStore.setItemAsync(KEY_INSTALL_TRACKED, "true");
       }
+
+      if (this.pendingRocaIdWrite) await this.persistRocaId(rocaId);
     } catch (error) {
       console.error("Error initializing Rocalytics client:", error);
     }
@@ -265,7 +278,7 @@ export class RocalyticsClient {
   ): Promise<void> {
     await this.ready;
     await trackRequest(
-      this.rocaId!,
+      await this.rocaIdReady,
       name,
       properties || {},
       this.deviceContext,
@@ -297,12 +310,13 @@ export class RocalyticsClient {
       },
     };
 
+    const rocaId = await this.rocaIdReady;
     await trackRequest(
-      this.rocaId!,
+      rocaId,
       "purchase",
       purchaseProperties,
       this.deviceContext,
-      `${this.rocaId}-purchase-${originalTransactionIdentifier}`,
+      `${rocaId}-purchase-${originalTransactionIdentifier}`,
     );
   }
 
@@ -315,7 +329,7 @@ export class RocalyticsClient {
     superwallEventInfo: Record<string, unknown>,
   ): Promise<void> {
     await this.ready;
-    await superwallEventRequest(this.rocaId!, superwallEventInfo);
+    await superwallEventRequest(await this.rocaIdReady, superwallEventInfo);
   }
 
   /**
@@ -353,26 +367,61 @@ export class RocalyticsClient {
       });
     }
 
-    await onboardingResponseRequest(this.rocaId!, {
+    await onboardingResponseRequest(await this.rocaIdReady, {
       onboarding_metadata: this.onboardingMetadata ?? undefined,
       sent_at: now,
       responses: this.onboardingResponses,
     });
   }
 
+  // A SecureStore failure must never yield a null or shared id, and only a stored id may become
+  // an SDK's PK (an unstored one changes next launch, i.e. a Superwall reset). A failed read falls
+  // back to a temporary UUID that is never persisted (the stored id may still exist); a new id
+  // whose write fails is temporary too, and its write is retried at the end of init().
   private async getOrCreateRocaId(): Promise<string> {
-    const existing = await SecureStore.getItemAsync(KEY_ROCA_ID);
-    if (existing) return existing;
+    let existing: string | null = null;
+    let readFailed = false;
+    try {
+      existing = await SecureStore.getItemAsync(KEY_ROCA_ID);
+    } catch (error) {
+      readFailed = true;
+      console.error(new Error(`[ROCALYTICS] rocaId read failed: ${error}`));
+    }
+    if (existing) {
+      this.rocaId = existing;
+      return existing;
+    }
     const id = Crypto.randomUUID();
-    await SecureStore.setItemAsync(KEY_ROCA_ID, id);
+    this.rocaId = id;
+    if (readFailed) {
+      this.isTemporaryRocaId = true;
+      return id;
+    }
+    if (!(await this.persistRocaId(id)) && !(await this.persistRocaId(id))) {
+      this.isTemporaryRocaId = true;
+      return id;
+    }
+    this.isNewRocaId = true;
     return id;
+  }
+
+  private async persistRocaId(id: string): Promise<boolean> {
+    try {
+      await SecureStore.setItemAsync(KEY_ROCA_ID, id);
+      this.pendingRocaIdWrite = false;
+      return true;
+    } catch (error) {
+      this.pendingRocaIdWrite = true;
+      console.error(new Error(`[ROCALYTICS] rocaId write failed: ${error}`));
+      return false;
+    }
   }
 
   public async identify(identifiers: IdentifyParams): Promise<void> {
     const payload = Object.fromEntries(
       Object.entries(identifiers).filter(([, v]) => v != null),
     );
-    await identifyRequest(this.rocaId!, payload);
+    await identifyRequest(await this.rocaIdReady, payload);
   }
 
   private async getDeviceContext(): Promise<DeviceContext> {
@@ -415,7 +464,7 @@ export class RocalyticsClient {
     properties?: Record<string, unknown>,
   ): Promise<void> {
     await trackRequest(
-      this.rocaId!,
+      await this.rocaIdReady,
       name,
       properties || {},
       this.deviceContext,
