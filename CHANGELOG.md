@@ -6,6 +6,14 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-10-02] — rocaId is safe to use as the Superwall / RevenueCat primary key
+
+### Changed
+- `RocalyticsClient` exposes `rocaIdReady` (SecureStore only, no network, never null), `isNewRocaId` and `isTemporaryRocaId`, matching `rocapine/app-template` PR #27 where the `rocaId` becomes the Superwall and RevenueCat primary key. A failed SecureStore read no longer throws out of `init()` or overwrites the stored id; a new id that cannot be stored is temporary. The `this.rocaId!` assertions are gone.
+- `/rocalytics-setup` Step 2: a reconcile must never change `KEY_ROCA_ID` (template apps use `"rocalitics-roca-id"`) nor drop the fields above.
+
+---
+
 ## [2026-07-21] — Check for Adjust subscription tracking during setup
 
 ### Added

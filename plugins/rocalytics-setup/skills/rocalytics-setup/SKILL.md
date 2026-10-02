@@ -54,9 +54,14 @@ Read `references/rocalytics.client.ts` (in this skill's directory) and write it 
 
 If the file already exists, reconcile: keep any fields or methods the user has already added, but ensure all exported types and the `RocalyticsClient` class match the reference. The reference is the source of truth for the API contract.
 
+Two things a reconcile must never do, because the `rocaId` is the Superwall and RevenueCat primary key in apps created from `rocapine/app-template` (a new or changed `rocaId` = a Superwall SDK reset, subscription status INACTIVE mid-trial, and a new RevenueCat customer):
+
+- **Never change `KEY_ROCA_ID`** of an existing client. Template apps use `"rocalitics-roca-id"`, this reference `"rocalytics-roca-id"`: keep whichever the project already has, or every user gets a new `rocaId`.
+- **Never drop `rocaIdReady`, `isNewRocaId` or `isTemporaryRocaId`**, nor the SecureStore-failure handling in `getOrCreateRocaId`. The template's `services/analytics/providers/rocalytics.provider.ts` (`getRocaIdentity` / `postInitialize`) reads them to identify the SDKs once, with a stored id only.
+
 **Key things this client does:**
 
-- Persists a `roca-id` UUID in SecureStore (created on first launch, stable forever).
+- Persists a `roca-id` UUID in SecureStore (created on first launch, stable forever). `rocaIdReady` resolves it without waiting on the network and never to null; `isTemporaryRocaId` flags an id that could not be stored (never use it as an SDK primary key).
 - Collects device context (IP, user-agent, screen size, timezone, locale, app version, etc.).
 - Auto-tracks an `install` event on first launch (guarded by a SecureStore flag).
 - `track(name, properties?)` fires a named analytics event.
