@@ -24,7 +24,7 @@ Run after `/rocalytics-setup`. Requires `expo-superwall` and a `utils/analytics.
 
 Read `references/rocalytics.provider.ts` (in this skill's directory) and write it to `services/analytics/providers/rocalytics.provider.ts` in the project.
 
-If the file already exists, reconcile: keep any existing exports, ensure `trackPurchase` matches the reference signature.
+If the file already exists, reconcile: keep any existing exports, ensure `trackPurchase` matches the reference signature. In apps created from `rocapine/app-template` the file also owns the user identity (`getRocaIdentity`, `postInitialize(rocaId)`, and their `amplitude` / `revenuecat` / `superwall` provider imports): never remove or rewrite those, or Superwall and RevenueCat stop being identified with the `rocaId`.
 
 ---
 
