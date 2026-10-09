@@ -14,6 +14,21 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-09-07] — Fix: Stripe web-checkout purchases + document per-app dedup prefixes
+
+### Fixed
+- `trackPurchase` threw on a Superwall web-checkout (Stripe) purchase: `product` and `transaction` were required and `product.productIdentifier` was dereferenced unconditionally, but a web purchase carries neither. They are now optional, `product_id` comes from a new required `productId` param, and `redemptionResult` is forwarded as `experimental.redemption_result` — the key `/track` already reads to capture the purchaser's email and Stripe customer id onto the identity.
+
+### Changed
+- **BREAKING (types only)**: `TrackPurchaseParams` now takes `productId: string`; `product` and `transaction` became optional. Callers that relied on `product.productIdentifier` being read for them must pass `productId`.
+
+### Docs
+- The README claimed `/track` forwards conversions to Meta CAPI, TikTok Events API **and** Adjust S2S. Only `meta-capi` is dispatched — there is no Adjust or TikTok forward in the project. Corrected, with a note that an `event_id` set on an Adjust/TikTok event has no server-side counterpart to dedupe against.
+- Documented the per-app `event_id` prefix overrides in `meta-capi/event_id.ts` (`9xiipt` for Unchaind, `user_converted` for Harmony, `purchase` for everything else) and that `getEventId` uses its `name` argument verbatim. Their absence from the docs let Unchaind's client drift to two different prefixes in July 2026; Meta double-counted every purchase for ~7 weeks (5498 events in 30 days).
+- Corrected the dedup-field table: Adjust's deduplication field is `setDeduplicationId`, not `setCallbackId`.
+
+---
+
 ## [2026-07-21] — Check for Adjust subscription tracking during setup
 
 ### Added

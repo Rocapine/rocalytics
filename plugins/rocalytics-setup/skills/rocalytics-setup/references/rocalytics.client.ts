@@ -3,6 +3,7 @@ import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import * as Network from "expo-network";
 import * as SecureStore from "expo-secure-store";
+import type { RedemptionResult } from "expo-superwall";
 import type { StoreProduct, StoreTransaction } from "expo-superwall/compat";
 import { Dimensions, Platform } from "react-native";
 
@@ -24,10 +25,12 @@ export type PurchaseProduct = StoreProduct;
 export type TrackPurchaseParams = {
   isTrial: boolean;
   value: number;
-  product: PurchaseProduct;
-  transaction: StoreTransaction;
   currency: string;
+  productId: string;
   originalTransactionIdentifier: string;
+  product?: PurchaseProduct;
+  transaction?: StoreTransaction;
+  redemptionResult?: RedemptionResult;
 };
 
 export type AdjustAttribution = {
@@ -292,21 +295,24 @@ export class RocalyticsClient {
     const {
       isTrial,
       value,
-      product,
       currency,
+      productId,
       originalTransactionIdentifier,
+      product,
       transaction,
+      redemptionResult,
     } = params;
 
     const purchaseProperties: Record<string, unknown> = {
       is_trial: isTrial,
       original_transaction_identifier: originalTransactionIdentifier,
-      product_id: product.productIdentifier,
+      product_id: productId,
       price: value,
       currency_code: currency,
       experimental: {
         product,
         transaction,
+        redemption_result: redemptionResult,
       },
     };
 
