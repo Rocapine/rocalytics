@@ -153,28 +153,14 @@ See [Cross-network deduplication](#cross-network-deduplication) for full field m
 
 ## Claude Code skill
 
-This repo ships a [Claude Code](https://claude.com/claude-code) plugin that scaffolds the client for you.
-
-### Install (recommended)
-
-In Claude Code:
+This repo ships the `rocalytics` [Claude Code](https://claude.com/claude-code) plugin. It adds [`@rocapine/rocalytics-sdk`](https://github.com/Rocapine/rocalytics-sdk) to an Expo app and wires the client, purchases (Superwall, RevenueCat, native paywalls), onboarding tracking and paywall tracking. It supersedes the copy-based `rocalytics-setup` plugin for client setup; `rocalytics-setup` still ships the Adjust and Facebook Superwall bridges.
 
 ```
-/plugin marketplace add Rocapine/rocalytics
-/plugin install rocalytics-setup@rocapine
+/plugin marketplace add rocapine/rocapine-marketplace
+/plugin install rocalytics@rocapine-marketplace
 ```
 
-Then run:
-
-```
-/rocalytics-setup
-```
-
-Claude will install the Expo dependencies, write `utils/rocalytics.client.ts`, and show you how to wire the client into your app.
-
-### Manual install (fallback)
-
-Copy [`plugins/rocalytics-setup/skills/rocalytics-setup`](./plugins/rocalytics-setup/skills/rocalytics-setup) into your project at `.claude/skills/rocalytics-setup`, or globally at `~/.claude/skills/rocalytics-setup`.
+Then ask Claude to "add rocalytics to this app" (skill: `setup-rocalytics`). See [`plugins/rocalytics`](./plugins/rocalytics).
 
 ---
 
