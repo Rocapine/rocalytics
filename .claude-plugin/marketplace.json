@@ -1,12 +1,20 @@
 {
   "name": "rocapine",
-  "owner": { "name": "Rocapine" },
+  "owner": {
+    "name": "Rocapine"
+  },
   "plugins": [
     {
       "name": "rocalytics-setup",
       "source": "./plugins/rocalytics-setup",
-      "description": "Install and wire up the Rocalytics analytics client in an Expo/React Native project.",
+      "description": "Install and wire up the Rocalytics analytics client in an Expo/React Native project. Superseded for SDK setup by the rocalytics plugin; still ships the Adjust/Facebook Superwall bridges.",
       "version": "1.5.0"
+    },
+    {
+      "name": "rocalytics",
+      "source": "./plugins/rocalytics",
+      "version": "0.1.0",
+      "description": "Add @rocapine/rocalytics-sdk to an Expo app and wire it end to end: the Rocalytics client (install, identify, purchases from Superwall, RevenueCat or native paywalls), onboarding run tracking and paywall presentation tracking through @rocapine/react-native-onboarding."
     }
   ]
 }
