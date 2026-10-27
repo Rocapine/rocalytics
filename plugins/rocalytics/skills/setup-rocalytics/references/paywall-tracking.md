@@ -25,7 +25,7 @@ Pass it to the single `PaywallProvider` as `observer`. That covers `present()` /
 <PaywallProvider productProvider={productProvider} customScreens={SCREENS} observer={paywallTracker}>
 ```
 
-Studio variants (react-native-onboarding > 1.77.0): the resolved `Paywall` and `CustomPaywallScreenProps.paywall` carry `variantKey` (`"main"` for the parent paywall) and `deploymentId`. Wherever the app builds presentation info itself from a Studio paywall, pass them: `variantKey: paywall.variantKey ?? undefined`, `deploymentId: paywall.deploymentId == null ? undefined : String(paywall.deploymentId)`. `observer` does not add them yet (see `known-gaps.md`) — don't wrap it to try.
+**Studio variants: nothing to wire here.** react-native-onboarding > 1.77.0 gives the resolved `Paywall` and `CustomPaywallScreenProps.paywall` a `variantKey` (`MAIN_VARIANT_KEY`, `"main"`, for the parent paywall) and a `deploymentId`, and the tracker forwards a presentation's `variantKey` as is. But the presentation info `PaywallProvider` hands `observer` does not include them until react-native-onboarding #237 ships (open as of 2026-10-27). Don't wrap `observer` to add them; list it from `known-gaps.md`.
 
 Custom paywall screens must report the purchase with its join key in `complete()` — see *Native paywalls on RevenueCat* in `client-and-purchases.md`. Without it the presentation counts as a conversion but earns no proceeds.
 

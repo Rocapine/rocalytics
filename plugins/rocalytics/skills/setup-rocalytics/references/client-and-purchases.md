@@ -47,7 +47,7 @@ await rocalytics.identify({ user_id: userId, revenue_cat_id: Purchases ? await P
 
 Typical places: after sign-in / account creation, after `Purchases.configure()` / `Purchases.logIn()`, and where Adjust attribution arrives (`adjust_attribution`). Do not invent identifiers the app does not have.
 
-**Sticky Studio assignment** (react-native-onboarding > 1.77.0). So a user keeps the same Studio variant across launches and reinstalls, pass the RevenueCat app user id to `OnboardingStudio.init` — the getter runs per request, so `Purchases.configure()` must happen before the first one:
+**Sticky Studio assignment** — only if the app uses react-native-onboarding (> 1.77.0) and RevenueCat. So a user keeps the same Studio variant across launches and reinstalls, pass the RevenueCat app user id to `OnboardingStudio.init` — the getter runs per request, so `Purchases.configure()` must happen before the first one:
 
 ```ts
 OnboardingStudio.init({ /* …existing options */ assignmentId: () => Purchases.getAppUserID() });
