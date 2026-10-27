@@ -6,6 +6,12 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-10-27] — setup-rocalytics 0.2.0: Studio variants
+### Changed
+- `/setup-rocalytics` wires Studio variants: onboarding runs send `studio.variantKey` (from `metadata.variantKey`, `"main"` for the parent) and `studio.deploymentId` (`String(metadata.deploymentId)`), never `onboarding.variantKey`; Studio paywall presentation info carries the paywall's `variantKey` / `deploymentId`; sticky assignment via react-native-onboarding's `assignmentId: () => Purchases.getAppUserID()`, with `false` and `OnboardingStudio.clearAssignmentId()` for consent. Needs react-native-onboarding > 1.77.0 and rocalytics-sdk > 0.6.0.
+
+---
+
 ## [2026-10-02] — rocaId is safe to use as the Superwall / RevenueCat primary key
 
 ### Changed
