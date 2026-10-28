@@ -53,7 +53,7 @@ Both trackers attach to `@rocapine/react-native-onboarding`. If paywall or onboa
 - **Older than 1.76.0** → upgrade (`npx expo install @rocapine/react-native-onboarding@latest @rocapine/react-native-onboarding-ui@latest`), then read the package's CHANGELOG between the two versions for breaking changes and fix call sites.
 - **Present and recent** → nothing to do.
 
-**Studio variants** need newer releases of both packages: react-native-onboarding **> 1.77.0** (`OnboardingMetadata.variantKey` / `deploymentId`, the paywall's `variantKey` / `deploymentId`, the `assignmentId` option) and rocalytics-sdk **> 0.6.0** (`studio.variantKey`). Check with `npm ls @rocapine/react-native-onboarding @rocapine/rocalytics-sdk`. If either is too old, upgrade when a release has it; otherwise skip the variant lines in the references (they fail `tsc` on older types) and list it under *By hand*.
+**Studio variants** need newer releases of both packages: react-native-onboarding **>= 1.78.0** (`OnboardingMetadata.variantKey` / `deploymentId`, the paywall's `variantKey` / `deploymentId`, the `assignmentId` option) and rocalytics-sdk **>= 0.7.0** (`studio.variantKey`). Check with `npm ls @rocapine/react-native-onboarding @rocapine/rocalytics-sdk`. If either is too old, upgrade it; otherwise skip the variant lines in the references (they fail `tsc` on older types) and list it under *By hand*.
 
 ## 4. Install the SDK
 
