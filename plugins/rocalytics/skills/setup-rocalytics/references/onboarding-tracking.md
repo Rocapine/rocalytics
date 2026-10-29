@@ -56,7 +56,7 @@ export function currentOnboardingRun(steps: BaseStepType[], metadata: Onboarding
       onboardingId: metadata.id,
       audienceId: metadata.audienceId,
       draft: metadata.draft,
-      // Studio variants (react-native-onboarding >= 1.78.0, rocalytics-sdk >= 0.7.0):
+      // Studio variants: both need react-native-onboarding >= 1.78.0; variantKey also needs rocalytics-sdk >= 0.7.0.
       variantKey: metadata.variantKey, // the served Studio variant; the parent reports MAIN_VARIANT_KEY ("main")
       deploymentId: metadata.deploymentId == null ? null : String(metadata.deploymentId), // number here, string in rocalytics
     },

@@ -153,4 +153,4 @@ const observedPurchases = {
 export const productProvider = revenueCatProductProvider(observedPurchases);
 ```
 
-Read `node_modules/@rocapine/react-native-onboarding/dist/products/adapters/revenueCat.js` first and bind **every** `Purchases` method it calls (as of 1.77.0: `getProducts`, `purchaseStoreProduct`, `restorePurchases`). `Purchases` is a class of static methods, so `{ ...Purchases }` copies none of them — list each one. Keep the wrapper in one file next to the provider.
+Read `node_modules/@rocapine/react-native-onboarding/dist/products/adapters/revenueCat.js` first and bind **every** `Purchases` method it calls (as of 1.78.0: `getProducts`, `purchaseStoreProduct`, `restorePurchases`). `Purchases` is a class of static methods, so `{ ...Purchases }` copies none of them — list each one. Keep the wrapper in one file next to the provider.
