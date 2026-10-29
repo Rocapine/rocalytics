@@ -52,7 +52,14 @@ export function currentOnboardingRun(steps: BaseStepType[], metadata: Onboarding
   run = onboardingRun.start({
     onboarding: { key: metadata.id, version: fingerprint(steps) },
     manifest: { steps: steps.map((s) => ({ stepKey: s.id })) },
-    studio: { onboardingId: metadata.id, audienceId: metadata.audienceId, draft: metadata.draft },
+    studio: {
+      onboardingId: metadata.id,
+      audienceId: metadata.audienceId,
+      draft: metadata.draft,
+      // Studio variants: both need react-native-onboarding >= 1.78.0; variantKey also needs rocalytics-sdk >= 0.7.0.
+      variantKey: metadata.variantKey, // the served Studio variant; the parent reports MAIN_VARIANT_KEY ("main")
+      deploymentId: metadata.deploymentId == null ? null : String(metadata.deploymentId), // number here, string in rocalytics
+    },
   });
   return run;
 }
@@ -75,6 +82,8 @@ export function toAnswer(questionKey: string | undefined, value: unknown): Answe
   return undefined; // objects: map to a stable key by hand, or leave unreported
 }
 ```
+
+**The Studio variant goes in `studio.variantKey`, never in `onboarding.variantKey`.** `onboarding.variantKey` is an app's own in-flow variant; on a Studio-served run the SDK drops it with a `studio-variant-dropped` diagnostic. `null` and absent mean the same thing for both fields.
 
 Adjust `toAnswer` to the flow: `"text"` (≤ 1,000 chars) for free-text steps, the option **key** (not its label) for single/multi choice, a `unit` for numeric steps that have one. Keys match `A-Z a-z 0-9 _ . : -`, 1–128 chars.
 

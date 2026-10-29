@@ -13,7 +13,7 @@
     {
       "name": "rocalytics",
       "source": "./plugins/rocalytics",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Add @rocapine/rocalytics-sdk to an Expo app and wire it end to end: the Rocalytics client (install, identify, purchases from Superwall, RevenueCat or native paywalls), onboarding run tracking and paywall presentation tracking through @rocapine/react-native-onboarding."
     }
   ]

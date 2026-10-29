@@ -47,6 +47,14 @@ await rocalytics.identify({ user_id: userId, revenue_cat_id: Purchases ? await P
 
 Typical places: after sign-in / account creation, after `Purchases.configure()` / `Purchases.logIn()`, and where Adjust attribution arrives (`adjust_attribution`). Do not invent identifiers the app does not have.
 
+**Sticky Studio assignment** — only if the app uses react-native-onboarding (>= 1.78.0) and RevenueCat. So a user keeps the same Studio variant across launches and reinstalls, pass the RevenueCat app user id to `OnboardingStudio.init` — the getter runs per request, so `Purchases.configure()` must happen before the first one:
+
+```ts
+OnboardingStudio.init({ /* …existing options */ assignmentId: () => Purchases.getAppUserID() });
+```
+
+`assignmentId: false` (or a getter returning `false`) opts out, e.g. before consent. When consent is withdrawn, also call `OnboardingStudio.clearAssignmentId()` to erase the stored id.
+
 ## Purchases — one recipe per stack
 
 `trackPurchase({ isTrial, value, currency, originalTransactionIdentifier, product?, transaction?, productId? })`. It deduplicates per `originalTransactionIdentifier`, so the id must be present — a purchase without it is dropped by Rocalytics.
@@ -145,4 +153,4 @@ const observedPurchases = {
 export const productProvider = revenueCatProductProvider(observedPurchases);
 ```
 
-Read `node_modules/@rocapine/react-native-onboarding/dist/products/adapters/revenueCat.js` first and bind **every** `Purchases` method it calls (as of 1.77.0: `getProducts`, `purchaseStoreProduct`, `restorePurchases`). `Purchases` is a class of static methods, so `{ ...Purchases }` copies none of them — list each one. Keep the wrapper in one file next to the provider.
+Read `node_modules/@rocapine/react-native-onboarding/dist/products/adapters/revenueCat.js` first and bind **every** `Purchases` method it calls (as of 1.78.0: `getProducts`, `purchaseStoreProduct`, `restorePurchases`). `Purchases` is a class of static methods, so `{ ...Purchases }` copies none of them — list each one. Keep the wrapper in one file next to the provider.
