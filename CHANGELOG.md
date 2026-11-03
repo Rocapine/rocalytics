@@ -6,6 +6,14 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-11-03] — Doc: sending an event to Adjust
+### Added
+- `docs/adjust-events.md`: how to fire a conversion through the Adjust SDK with `roca_id` (global partner parameter), `order_id` (`originalTransactionIdentifier`, matched by `AppendValue`) and `event_id` (`getEventId`, Meta dedup), plus the Adjust dashboard mapping to Meta.
+### Changed
+- README: the Adjust `event_id` goes in the `event_id` partner parameter, not `setCallbackId`; the example now uses `@rocapine/rocalytics-sdk/client` and sends `order_id`.
+
+---
+
 ## [2026-10-27] — setup-rocalytics 0.2.0: Studio variants
 ### Changed
 - `/setup-rocalytics` wires Studio variants: onboarding runs send `studio.variantKey` (from `metadata.variantKey`, `"main"` for the parent) and `studio.deploymentId` (`String(metadata.deploymentId)`, `null` kept), never `onboarding.variantKey`; Studio paywall presentation info carries the paywall's `variantKey` / `deploymentId` with no app code; sticky assignment via react-native-onboarding's `assignmentId: () => Purchases.getAppUserID()`, with `false` and `OnboardingStudio.clearAssignmentId()` for consent. Every field needs react-native-onboarding >= 1.78.0; `studio.variantKey` also needs rocalytics-sdk >= 0.7.0 (the other fields work with any published rocalytics-sdk).

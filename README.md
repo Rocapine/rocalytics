@@ -144,10 +144,10 @@ const eventId = getEventId("purchase", {
 // Pass eventId to:
 // - Meta Pixel `eventID` / Meta CAPI `event_id`
 // - TikTok Pixel `event_id` / Events API `event_id`
-// - Adjust SDK `callback_id`
+// - Adjust SDK partner parameter `event_id` (with `order_id` and `roca_id`, see docs/adjust-events.md)
 ```
 
-See [Cross-network deduplication](#cross-network-deduplication) for full field mapping.
+See [Cross-network deduplication](#cross-network-deduplication) for full field mapping, and [Sending an event to Adjust](./docs/adjust-events.md) for the Adjust side.
 
 ---
 
@@ -399,7 +399,7 @@ Pass `eventId` as:
 | Network | Field | Server-side counterpart exists? |
 |---|---|---|
 | Meta CAPI / SDK | `event_id` | **yes** — this is the one that matters |
-| Adjust SDK | `setDeduplicationId` (Adjust's dedup field; `setCallbackId` is *not* one) | no — but Adjust forwards `event_id` as a partner parameter to Meta |
+| Adjust SDK | partner parameter `event_id` (`setCallbackId` / `setDeduplicationId` never reach Meta) | no — but Adjust forwards it to Meta, see [Sending an event to Adjust](./docs/adjust-events.md) |
 | TikTok | `event_id` | no |
 
 Signature:
@@ -431,7 +431,7 @@ This is not hypothetical: in July 2026 Unchaind's client was changed to send `pu
 
 ### Naming events sent to Meta via Adjust
 
-When the app fires purchase / trial / subscribe conversions through the Adjust SDK, Adjust forwards them on to Meta. Use `getEventId` with these specific names as the `callback_id` so Meta's forwarded events dedupe against Rocalytics's server-side forward:
+When the app fires purchase / trial / subscribe conversions through the Adjust SDK, Adjust forwards them on to Meta. Send `getEventId` with these specific names as the `event_id` partner parameter, so Meta's forwarded events dedupe against Rocalytics's server-side forward. The full recipe, with `roca_id`, `order_id` and the Adjust dashboard mapping, is in [Sending an event to Adjust](./docs/adjust-events.md).
 
 | Event | `name` passed to `getEventId` | Resulting id |
 |---|---|---|
@@ -440,16 +440,14 @@ When the app fires purchase / trial / subscribe conversions through the Adjust S
 | Subscribe | `"subscribe"` | `subscribe-{originalTransactionIdentifier}` |
 
 ```typescript
-import Adjust, { AdjustEvent } from "react-native-adjust";
-import { getEventId } from "@/utils/rocalytics.client";
+import { Adjust, AdjustEvent } from "react-native-adjust";
+import { getEventId } from "@rocapine/rocalytics-sdk/client";
 
+const tx = transaction.originalTransactionIdentifier;
 const event = new AdjustEvent(adjustEventToken);
-event.setCallbackId(
-  getEventId("purchase", {
-    originalTransactionIdentifier: transaction.originalTransactionIdentifier,
-  }),
-);
-// → "purchase-2000000841136630"
+event.addPartnerParameter("order_id", tx);
+const eventId = getEventId("purchase", { original_transaction_identifier: tx });
+if (eventId) event.addPartnerParameter("event_id", eventId); // → "purchase-2000000841136630"
 Adjust.trackEvent(event);
 ```
 
