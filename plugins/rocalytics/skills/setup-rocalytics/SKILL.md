@@ -1,11 +1,11 @@
 ---
 name: setup-rocalytics
-description: Add @rocapine/rocalytics-sdk to an Expo / React Native app and wire it end to end — the Rocalytics client (install, identify, purchases), onboarding run tracking and paywall presentation tracking. Detects the purchase stack (Superwall, RevenueCat, native paywalls on RevenueCat), installs and sets up @rocapine/react-native-onboarding when missing, and migrates a copied rocalytics.client.ts. Use when the user says "add rocalytics", "set up rocalytics", "install the rocalytics sdk", "track paywalls / onboarding in rocalytics", or "migrate rocalytics.client.ts to the SDK".
+description: Add @rocapine/rocalytics-sdk to an Expo / React Native app and wire it end to end — the Rocalytics client (install, identify, purchases), onboarding run tracking, paywall presentation tracking and product analytics (Amplitude-style events to the warehouse). Detects the purchase stack (Superwall, RevenueCat, native paywalls on RevenueCat), installs and sets up @rocapine/react-native-onboarding when missing, and migrates a copied rocalytics.client.ts. Use when the user says "add product analytics", "send events to the warehouse", "add rocalytics", "set up rocalytics", "install the rocalytics sdk", "track paywalls / onboarding in rocalytics", or "migrate rocalytics.client.ts to the SDK".
 ---
 
 # Set up Rocalytics
 
-Goal: the app ends with **everything connected** — one Rocalytics client, every purchase reported exactly once, and (when chosen) onboarding runs and paywall presentations reported through the SDK's trackers.
+Goal: the app ends with **everything connected** — one Rocalytics client, every purchase reported exactly once, and (when chosen) onboarding runs, paywall presentations and product events reported through the SDK.
 
 Work in this order. Do not skip the scan: every later step branches on it.
 
@@ -14,7 +14,7 @@ Work in this order. Do not skip the scan: every later step branches on it.
 Run from the app root (the folder with `package.json` and `app.json` / `app.config.*`):
 
 ```sh
-node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const k of ["expo","react-native","expo-router","@rocapine/rocalytics-sdk","@rocapine/react-native-onboarding","@rocapine/react-native-onboarding-ui","expo-superwall","react-native-purchases","@react-native-async-storage/async-storage","expo-localization","expo-application","expo-crypto","expo-device","expo-network","expo-secure-store"])console.log(k.padEnd(44),d[k]??"-")'
+node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const k of ["expo","react-native","expo-router","@rocapine/rocalytics-sdk","@rocapine/react-native-onboarding","@rocapine/react-native-onboarding-ui","expo-superwall","react-native-purchases","@react-native-async-storage/async-storage","@amplitude/analytics-react-native","expo-localization","expo-application","expo-crypto","expo-device","expo-network","expo-secure-store"])console.log(k.padEnd(44),d[k]??"-")'
 grep -rln --include=*.ts --include=*.tsx -e 'rocalytics' -e 'RocalyticsClient' . --exclude-dir=node_modules | head -30
 grep -rln --include=*.ts --include=*.tsx -e 'SuperwallDelegate' -e 'purchaseStoreProduct' -e 'purchasePackage' -e 'revenueCatProductProvider' -e 'PaywallProvider' -e 'OnboardingProvider' -e 'useOnboardingStep' -e 'trackOnboarding' -e 'onboarding_completed' . --exclude-dir=node_modules
 ```
@@ -33,6 +33,8 @@ Record, for the plan you show the user:
 | **react-native-onboarding** | installed? version ≥ **1.76.0** (first with `PaywallProvider` `observer`)? `-ui` installed? |
 | **Onboarding shape** | Studio flow (`OnboardingProvider` + a step route calling `useOnboardingStep`), hand-coded screens, or none |
 | **Old Rocalytics** | a copied `rocalytics.client.ts`, a `rocalytics.provider.ts`, `trackOnboarding(...)` calls, manual `track("onboarding_completed")` |
+| **Amplitude** | `@amplitude/analytics-react-native` installed; where `track` / `setUserId` / `identify` are called, and whether one wrapper owns them |
+| **Bundle ids** | `ios.bundleIdentifier` / `android.package` in `app.json` / `app.config.*` |
 | **Root layout** | `app/_layout.tsx` (expo-router) or `App.tsx` |
 | **Sign-in / RevenueCat id** | where the app learns its user id and calls `Purchases.configure` / `logIn` |
 
@@ -42,6 +44,7 @@ Use `AskUserQuestion` (multi-select). The client is always included; say so in t
 
 - **Onboarding tracking** — report onboarding runs (steps, answers, completion). Pre-select if an onboarding exists.
 - **Paywall tracking** — report paywall presentations (shown / purchased / dismissed). Pre-select if paywalls exist.
+- **Product analytics** — product events to the Rocalytics warehouse, alongside Amplitude. Pre-select if Amplitude is installed.
 
 Then show the plan in a few lines — detected stack, what will be installed, which files change — and continue. Ask again only when the scan is genuinely ambiguous (e.g. two purchase pipelines and no way to tell which is live).
 
@@ -67,13 +70,13 @@ Only if the app cannot upgrade: leave out the lines for the fields its versions 
 ## 4. Install the SDK
 
 ```sh
-npm view @rocapine/rocalytics-sdk version      # confirm the latest published version
+npm view @rocapine/rocalytics-sdk version      # confirm the latest published version (>= 0.10.0 for product analytics)
 npx expo install @rocapine/rocalytics-sdk expo-application expo-crypto expo-device expo-network expo-secure-store expo-localization @react-native-async-storage/async-storage
 ```
 
 The `expo-*` modules are the client's peers (`expo-modules-core` comes with `expo`). A missing peer **fails the Metro bundle**; one missing from the native binary (an OTA update to an older build) makes the client inert, not crash. Adding native modules means a **new native build** — say so in the report.
 
-**The installed README is the source of truth.** Read `node_modules/@rocapine/rocalytics-sdk/README.md` (sections *Rocalytics client*, *Paywall presentations*, *API*) before writing code, and prefer it over this skill wherever they differ.
+**The installed README is the source of truth.** Read `node_modules/@rocapine/rocalytics-sdk/README.md` (sections *Rocalytics client*, *Paywall presentations*, *Product analytics*, *API*) before writing code, and prefer it over this skill wherever they differ.
 
 ## 5. Wire it
 
@@ -82,7 +85,8 @@ Follow the references in this order, skipping what was not chosen:
 1. `references/client-and-purchases.md` — the client module, identify, `trackPurchase` per purchase stack. Always.
 2. `references/onboarding-tracking.md` — onboarding runs.
 3. `references/paywall-tracking.md` — paywall presentations.
-4. `references/migration.md` — only if old Rocalytics code was found. Do it **while** wiring, not after: the old client and the SDK client must never both run.
+4. `references/product-analytics.md` — product events. Run its allowlist gate first.
+5. `references/migration.md` — only if old Rocalytics code was found. Do it **while** wiring, not after: the old client and the SDK client must never both run.
 
 Rules that hold everywhere:
 
@@ -108,5 +112,5 @@ End with a short report:
 - **Connected** — client, identify, purchases (per stack), onboarding, paywalls, each with the file it lives in.
 - **Removed** — old client files, `trackOnboarding` calls, manual `onboarding_completed`.
 - **Needs a native build** — when peers were added.
-- **By hand** — Studio side (moments/paywalls published), anything the scan could not decide.
+- **By hand** — Studio side (moments/paywalls published), anything the scan could not decide. With product analytics: the allowlist result, marked **release blocker** when the app id is not allowlisted.
 - **Known gaps** — copy the ones that apply from `references/known-gaps.md`.

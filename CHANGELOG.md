@@ -6,6 +6,12 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-11-10] — setup-rocalytics 0.3.0: product analytics
+### Added
+- `/setup-rocalytics` can wire `@rocapine/rocalytics-sdk/analytics` (rocalytics-sdk >= 0.10.0): new option *Product analytics*, reference `references/product-analytics.md`. An allowlist gate first probes `https://ingest.rocapi.ne/v1/batch` per bundle id (no events sent) and reports a non-allowlisted app as a release blocker. The module passes expo-crypto's `getRandomValues` (Hermes has no `crypto` global), AsyncStorage, `rocaId` from the client and a background flush. Amplitude stays: events fan out to both through the app's wrapper until the warehouse switches the app's `sdkFrom`.
+
+---
+
 ## [2026-11-03] — Doc: sending an event to Adjust
 ### Added
 - `docs/adjust-events.md`: how to fire a conversion through the Adjust SDK with `roca_id` (global partner parameter), `order_id` (`originalTransactionIdentifier`, matched by `AppendValue`) and `event_id` (`getEventId`, Meta dedup), plus the Adjust dashboard mapping to Meta.
