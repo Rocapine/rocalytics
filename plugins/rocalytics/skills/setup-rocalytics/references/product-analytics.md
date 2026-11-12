@@ -10,6 +10,7 @@ for id in <ios bundle id> <android package>; do
 done
 ```
 - `"bad platform"` → allowlisted (the probe sends no events).
+- Dev / preview variants (`<id>.dev`, `<id>.preview`) are normally not allowlisted: their batches are rejected, which is expected. Probe only the production ids for the gate.
 - `"unknown app_id"` → **not allowlisted.** Wire it anyway, but put under *By hand*, as a release blocker: add the id to `event_ingest_apps` (`terraform/variables.tf`) and the app to `models/includes/apps.js` in Rocapine/rocalytics-warehouse, merged and applied **before** a build with this code ships.
 
 ## 1. The analytics module

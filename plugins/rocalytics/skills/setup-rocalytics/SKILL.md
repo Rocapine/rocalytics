@@ -53,7 +53,7 @@ Then show the plan in a few lines — detected stack, what will be installed, wh
 Both trackers attach to `@rocapine/react-native-onboarding`. If paywall or onboarding tracking was chosen:
 
 - **Missing** → install and set it up yourself: `references/onboarding-sdk.md`.
-- **Older than 1.76.0** → upgrade (`npx expo install @rocapine/react-native-onboarding@latest @rocapine/react-native-onboarding-ui@latest`), then read the package's CHANGELOG between the two versions for breaking changes and fix call sites.
+- **Older than 1.76.0** → upgrade (`npx expo install @rocapine/react-native-onboarding@latest @rocapine/react-native-onboarding-ui@latest`), then read `packages/onboarding/CHANGELOG.md` in Rocapine/react-native-onboarding (`gh api repos/Rocapine/react-native-onboarding/contents/packages/onboarding/CHANGELOG.md -H 'Accept: application/vnd.github.raw'`; the npm package does not ship it) between the two versions for breaking changes and fix call sites.
 - **Present and recent** → nothing to do.
 
 **Studio variants** need react-native-onboarding **>= 1.78.0** and rocalytics-sdk **>= 0.7.0**; both are on npm. Check with `npm ls @rocapine/react-native-onboarding @rocapine/rocalytics-sdk` and upgrade whichever is older. What each field needs:
@@ -100,8 +100,10 @@ Rules that hold everywhere:
 ```sh
 npx tsc --noEmit
 npm run lint --if-present
-npx expo export --platform ios --output-dir /tmp/rocalytics-export-check   # bundle check: catches a missing peer
+npx expo export --platform ios --output-dir "${TMPDIR:-/tmp}/rocalytics-export-check"   # bundle check: catches a missing peer (use your scratch dir if you have one)
 ```
+
+Specs that import a module which now imports the client (an analytics wrapper, a provider) fail with `AsyncStorage is null` / native-module errors under Jest: mock the client module (`jest.mock('@/services/analytics/rocalytics', …)`) in those specs, or the app's shared Jest setup.
 
 All three must pass before you report done. Fix what you broke; if a failure pre-exists, prove it with `git stash` and say so.
 

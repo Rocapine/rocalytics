@@ -30,7 +30,7 @@ onboardingRun.configure({
 
 react-native-onboarding has no step observer, but **every step renders through the app's own step route** (e.g. `app/onboarding/[questionId].tsx`), which calls `useOnboardingStep({ stepNumber })` and owns `onContinue`. That route is the single seam: wiring it covers every step type, composable and custom screens alike.
 
-Create `services/analytics/onboardingTracking.ts`:
+Create `services/analytics/onboardingTracking.ts` (match the repo's file naming, e.g. `onboarding-tracking.ts` in a kebab-case repo):
 
 ```ts
 import { onboardingRun, type AnswerInput, type OnboardingRun } from "@rocapine/rocalytics-sdk/onboarding";
@@ -74,11 +74,17 @@ export function backgroundOnboardingRun() {
   run?.background();
 }
 
+// Choice values must be option keys. A display title (spaces, accents) is refused by the SDK with only a diagnostic.
+const KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
+
 export function toAnswer(questionKey: string | undefined, value: unknown): AnswerInput[] | undefined {
   if (!questionKey || value === undefined || value === null) return undefined;
-  if (Array.isArray(value)) return [{ questionKey, kind: "multi", value: value.map(String) }];
+  if (Array.isArray(value)) {
+    const keys = value.map(String).filter((v) => KEY.test(v));
+    return keys.length ? [{ questionKey, kind: "multi", value: keys }] : undefined;
+  }
   if (typeof value === "number") return [{ questionKey, kind: "numeric", value }];
-  if (typeof value === "string") return [{ questionKey, kind: "single", value }];
+  if (typeof value === "string") return KEY.test(value) ? [{ questionKey, kind: "single", value }] : undefined;
   return undefined; // objects: map to a stable key by hand, or leave unreported
 }
 ```
@@ -129,6 +135,8 @@ Then:
 ## Hand-coded onboarding
 
 No Studio flow: follow the README's *A hand-coded onboarding* section exactly — `start()` with an explicit `onboarding: { key, version }` and a manifest of every screen (alternatives at one position share a `slot`), `enterStep`/`exitStep` per screen, `complete()` at the end, `background()` from `AppState`. Put the manifest next to the navigator so a new screen can't be added without it.
+
+**Studio steps merged into the app's own config** (the app renders every screen itself, some fetched from Studio): track it the hand-coded way, with the Studio ids in `studio` only when Studio actually served the flow. Build the manifest from the steps' own keys, **dropping steps with no key and repeated keys**: either makes `start()` refuse the whole run (an inert run, `invalid-start` diagnostic), and with it `onboarding_completed`. Version the run by a fingerprint of the step list, since a deployment id alone does not pin the merged manifest. Never report free-text or name steps.
 
 ## Verify
 

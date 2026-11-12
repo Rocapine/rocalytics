@@ -6,6 +6,18 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-11-12] — setup-rocalytics 0.3.1: fixes from the first real run (oly)
+### Fixed
+- An existing purchase pipeline wins over the per-stack recipes: the Superwall recipe added beside a pipeline the delegate already feeds counted every purchase twice. Check for a Superwall `PurchaseController` first.
+- `usePaywallHost().complete(result, transaction)` takes two arguments; the one-object form is only the `customScreens` prop.
+- `toAnswer` keeps only key-shaped choice values; display titles were refused with only a diagnostic.
+- New recipe: Studio steps merged into the app's own config, with a manifest that drops unkeyed and repeated steps (either made the run inert and lost `onboarding_completed`).
+- react-native-onboarding's CHANGELOG is read from GitHub (the npm package does not ship it).
+- Jest: mock the client module in specs that now import it (`AsyncStorage is null`).
+- Ask before wiring `assignmentId` while Studio experiments are live (it re-buckets users); keep an existing currency fallback during the migration; match the repo's file naming; no hardcoded `/tmp`; `locale` is a BCP 47 tag, prefer the in-app language; dev / preview ids are expected to be off the ingest allowlist.
+
+---
+
 ## [2026-11-10] — setup-rocalytics 0.3.0: product analytics
 ### Added
 - `/setup-rocalytics` can wire `@rocapine/rocalytics-sdk/analytics` (rocalytics-sdk >= 0.10.0): new option *Product analytics*, reference `references/product-analytics.md`. An allowlist gate first probes `https://ingest.rocapi.ne/v1/batch` per bundle id (no events sent) and reports a non-allowlisted app as a release blocker. The module passes expo-crypto's `getRandomValues` (Hermes has no `crypto` global), AsyncStorage, `rocaId` from the client and a background flush. Amplitude stays: events fan out to both through the app's wrapper until the warehouse switches the app's `sdkFrom`.
