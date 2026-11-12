@@ -28,7 +28,7 @@ export const trackingContext = (): RunContextInput => ({
   platform: Platform.OS === "android" ? "android" : "ios",
   osVersion: Device.osVersion ?? null,
   // The language the flow is SHOWN in. If the app has its own language picker, use that, not the device's.
-  locale: Localization.getLocales()[0]?.languageTag ?? "en-US",
+  locale: Localization.getLocales()[0]?.languageTag ?? "en-US", // a BCP 47 tag; prefer the in-app language if the app has its own (e.g. "fr")
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 });
 ```
@@ -53,17 +53,22 @@ Typical places: after sign-in / account creation, after `Purchases.configure()` 
 OnboardingStudio.init({ /* …existing options */ assignmentId: () => Purchases.getAppUserID() });
 ```
 
+**Ask before wiring it when Studio experiments are live:** it changes the bucketing key, so users already in a running experiment can move to another variant. Skip it if the user says cross-install consistency is not worth it.
+
 `assignmentId: false` (or a getter returning `false`) opts out, e.g. before consent. When consent is withdrawn, also call `OnboardingStudio.clearAssignmentId()` to erase the stored id.
 
 ## Purchases — one recipe per stack
 
 `trackPurchase({ isTrial, value, currency, originalTransactionIdentifier, product?, transaction?, productId? })`. It deduplicates per `originalTransactionIdentifier`, so the id must be present — a purchase without it is dropped by Rocalytics.
 
-**If the app already has one purchase pipeline** (a function every purchase goes through, like Harmony's `recordConversion`), add the `trackPurchase` call **inside it** and route new stacks into it. Never add a second, parallel call.
+**If the app already has one purchase pipeline** (a function every purchase goes through, like Harmony's `recordConversion`, or an event such as oly's `user_converted` that a provider turns into `trackPurchase`), add the `trackPurchase` call **inside it** and route new stacks into it. Never add a second, parallel call. **The pipeline wins over the per-stack recipes below:** they show what to report and from where, not a second place to report it. Adding the Superwall recipe to a delegate that already feeds the pipeline counts every purchase twice.
+
+**An existing currency fallback** (e.g. `currency ?? 'USD'`) in that pipeline: keep it during the migration so revenue numbers do not shift with it, and list it under *By hand* for a separate change.
 
 Wrap every call: `try { … } catch (e) { reportError(e) }` with the app's reporter (Sentry `captureException` if present, else `console.error`).
 
 ### Superwall
+Only when no pipeline exists. Check first whether Superwall has a `PurchaseController`: without one, Superwall buys itself and the delegate is the only place its purchases show up.
 
 In the `SuperwallDelegate` subclass (create `services/superwall/superwall.delegate.ts` if none, and register it where `Superwall.configure` / `<SuperwallProvider>` is), handle `EventType.transactionComplete`. Keep existing cases; only add the call.
 
@@ -128,6 +133,8 @@ complete({
 // Restore: complete({ status: "purchased", transaction: { restored: true } })
 // Close button / cancel: complete({ status: "dismissed" }) — complete() must run on EVERY exit path.
 ```
+
+This is the `complete` prop a `customScreens` component receives: one object. An app that hosts the paywall itself through `usePaywallHost()` calls the host's `complete(result, transaction)` instead — **two arguments**, e.g. `complete({ status: "purchased" }, { originalTransactionIdentifier, productId })`. Check the installed types.
 
 Check `node_modules/@revenuecat/purchases-typescript-internal` for a `purchaseToken` field on the transaction. If there is none, Android purchases from these screens earn no proceeds attribution — list it in the report.
 
