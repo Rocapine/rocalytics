@@ -13,6 +13,7 @@ Rocalytics is delivered as a copy-paste TypeScript client, not a published npm p
 - [Step 2 — Identify](#step-2--identify)
 - [Step 3 — Track conversion events](#step-3--track-conversion-events)
 - [Step 4 — Share the `event_id` with Meta / TikTok / Adjust](#step-4--share-the-event_id-with-meta--tiktok--adjust)
+- [Verify the installation](#verify-the-installation)
 - [Claude Code skill](#claude-code-skill)
 - [API reference](#api-reference)
 - [Events](#events)
@@ -148,6 +149,18 @@ const eventId = getEventId("purchase", {
 ```
 
 See [Cross-network deduplication](#cross-network-deduplication) for full field mapping, and [Sending an event to Adjust](./docs/adjust-events.md) for the Adjust side.
+
+---
+
+## Verify the installation
+
+After launching the app at least once, check that events reach the backend:
+
+```bash
+curl "https://rocalytics-api.rocapine.io/functions/v1/status?app=YOUR_APP_ID"
+```
+
+`YOUR_APP_ID` is the bundle ID (e.g. `com.example.app`), the same value sent as `X-Application-ID`. The response lists each event (`install`, `onboarding_completed`, `purchase`, …) with its count and `latest_received_at`. Missing events mean the client is not wired or not reaching the API.
 
 ---
 
