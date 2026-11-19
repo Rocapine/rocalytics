@@ -37,7 +37,13 @@ One dataset per query, in the artifact store, `datasets/<id>`:
 }
 ```
 
-Loader on the page: `read.bigquery(answer)`. `dash/settings` = `{"updates": "hour"}`.
+Each dataset needs a loader on the page; `read` is an argument of the loader, not a global:
+
+```js
+dash.loader('<id>', { description: 'BigQuery answer to rows', fn: ({ answer, read }) => read.bigquery(answer) });
+```
+
+Cells come back as text: convert with `+value` before comparing or adding. `dash/settings` = `{"updates": "hour"}`.
 
 Every query reads `marts` only (see `marts.md`, `cost.md`).
 
