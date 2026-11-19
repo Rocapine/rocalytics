@@ -92,7 +92,7 @@ ORDER BY step
 
 ### event_retention
 
-Amplitude "N-day retention" for a start event and a return event over a date range. Cohort: each user once, on their first start-event day in the range. Retained on day N: the return event happened N calendar days after **any** of the user's start-event days in the range. Day 0 is everyone. A day N is left out for users whose day N hasn't ended. Checked: yes (see `metrics.md`).
+Amplitude "N-day retention" for a start event and a return event over a date range. Cohort: each user once, on their first start-event day in the range. Retained on day N: the return event happened N calendar days after **any** of the user's start-event days in the range. Day 0 is everyone. A day N is left out for users whose day N hasn't ended. Checked: partly — close on Unchaind, but on Oly days 1–3 run about 1–2 points above Amplitude (`metrics.md`). Say so on the page.
 
 ```sql
 WITH s AS (
@@ -145,24 +145,23 @@ For a curve per cohort week, add `DATE_TRUNC(cohort_day, WEEK(MONDAY)) AS cohort
 
 ### revenue_arppu
 
-Revenue from RevenueCat events (`rc_initial_purchase_event`, `rc_renewal_event`, `rc_non_subscription_purchase_event`, `rc_product_change_event`), production only, `$revenue` as sent and in the currency sent (no conversion, like Amplitude). ARPPU = revenue / paying users. Checked: no.
+Revenue from every RevenueCat event that carries `$revenue` (initial purchases, trial conversions, renewals, product changes, non-subscription purchases, and refunds on cancellations as negative amounts), production only. RevenueCat sends `$revenue` in USD whatever the store currency (`currency` is the buyer's), and Amplitude sums it the same way. ARPPU = revenue / users with a positive revenue event. Checked: no.
 
 ```sql
 SELECT DATE(event_time) AS day,
-  JSON_VALUE(properties, '$.currency') AS currency,
-  ROUND(SUM(CAST(JSON_VALUE(properties, '$."$revenue"') AS FLOAT64)), 2) AS revenue,
-  COUNT(DISTINCT user_key) AS paying_users,
-  ROUND(SAFE_DIVIDE(SUM(CAST(JSON_VALUE(properties, '$."$revenue"') AS FLOAT64)), COUNT(DISTINCT user_key)), 2) AS arppu
+  ROUND(SUM(CAST(JSON_VALUE(properties, '$."$revenue"') AS FLOAT64)), 2) AS revenue_usd,
+  COUNT(DISTINCT IF(CAST(JSON_VALUE(properties, '$."$revenue"') AS FLOAT64) > 0, user_key, NULL)) AS paying_users,
+  ROUND(SAFE_DIVIDE(SUM(CAST(JSON_VALUE(properties, '$."$revenue"') AS FLOAT64)),
+    COUNT(DISTINCT IF(CAST(JSON_VALUE(properties, '$."$revenue"') AS FLOAT64) > 0, user_key, NULL))), 2) AS arppu_usd
 FROM marts.events
 WHERE app = '{{app}}'
-  AND name IN ('rc_initial_purchase_event', 'rc_renewal_event', 'rc_non_subscription_purchase_event', 'rc_product_change_event')
+  AND name LIKE 'rc\\_%'
+  AND JSON_VALUE(properties, '$."$revenue"') IS NOT NULL
   AND JSON_VALUE(properties, '$.environment') = 'PRODUCTION'
   AND event_time >= TIMESTAMP('{{start}}') AND event_time < TIMESTAMP(DATE_ADD('{{end}}', INTERVAL 1 DAY))
-GROUP BY 1, 2
-ORDER BY 1, 2
+GROUP BY 1
+ORDER BY 1
 ```
-
-Show currencies apart, or say that totals add different currencies.
 
 ### ab_by_variant
 
@@ -171,7 +170,7 @@ Users exposed to a flag (`[Experiment] Exposure`), by variant (first exposure wi
 ```sql
 WITH exp AS (
   SELECT user_key,
-    ARRAY_AGG(JSON_VALUE(properties, '$."[Experiment] Variant"') ORDER BY event_time LIMIT 1)[OFFSET(0)] AS variant,
+    ARRAY_AGG(JSON_VALUE(properties, '$."[Experiment] Variant"') IGNORE NULLS ORDER BY event_time LIMIT 1)[SAFE_OFFSET(0)] AS variant,
     MIN(event_time) AS t0,
     COUNT(DISTINCT JSON_VALUE(properties, '$."[Experiment] Variant"')) AS variants
   FROM marts.events

@@ -36,7 +36,7 @@ A user is active on a day with `active_events > 0` in `marts.user_activity_daily
 
 ## Revenue and ARPPU
 
-RevenueCat `rc_*` events with `environment = PRODUCTION`, summed `$revenue` as sent, per currency (recipe `revenue_arppu`). Like Amplitude, no currency conversion. ARPPU = revenue / users with a revenue event. Not yet checked against Amplitude.
+Every RevenueCat `rc_*` event with a `$revenue` and `environment = PRODUCTION`: purchases, trial conversions (the largest share for apps with trials), renewals, product changes, and refunds (negative, on cancellations) (recipe `revenue_arppu`). `$revenue` is in USD whatever the store currency, as RevenueCat sends it; Amplitude sums the same property. ARPPU = revenue / users with a positive revenue event. Not yet checked against Amplitude.
 
 ## Funnels
 

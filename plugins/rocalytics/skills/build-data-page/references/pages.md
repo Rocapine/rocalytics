@@ -63,7 +63,7 @@ Read `data/users/me` → `check` and `runs`: no faults, every dataset returned r
 
 Tell the author, briefly:
 - what the page shows, and for which app, period and platforms;
-- assumptions and definitions in `metrics.md` terms ("new users = first seen", "new-user retention = 24-hour windows from the first event", "event retention = return N days after any start day"), and every "not yet checked against Amplitude" metric;
+- assumptions and definitions in `metrics.md` terms ("new users = first seen", "new-user retention = 24-hour windows from the first event", "event retention = return N days after any start day"), every "not yet checked against Amplitude" metric, and the caveat on any metric checked only "partly";
 - bytes per open (sum of dry-runs);
 - the page is private until they share it from its Share menu; sharing the link is fine, since each viewer still needs to be in `analytics-readers@rocapine.com` to see numbers;
 - plus the Data type's own hand-over lines.
