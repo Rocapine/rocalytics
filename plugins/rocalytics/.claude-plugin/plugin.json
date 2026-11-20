@@ -1,7 +1,7 @@
 {
   "name": "rocalytics",
-  "version": "0.3.1",
-  "description": "Add @rocapine/rocalytics-sdk to an Expo app and wire it end to end: the Rocalytics client (install, identify, purchases from Superwall, RevenueCat or native paywalls), onboarding run tracking, paywall presentation tracking and product analytics through @rocapine/react-native-onboarding.",
+  "version": "0.4.0",
+  "description": "Add @rocapine/rocalytics-sdk to an Expo app and wire it end to end: the Rocalytics client (install, identify, purchases from Superwall, RevenueCat or native paywalls), onboarding run tracking, paywall presentation tracking and product analytics through @rocapine/react-native-onboarding. Also: request read access to the Rocalytics warehouse and build live data pages (dashboards, analyses, stories, updates) on its marts.",
   "author": {
     "name": "Rocapine",
     "email": "paulb@rocapine.com"
@@ -16,6 +16,8 @@
     "expo",
     "react-native",
     "paywall",
-    "onboarding"
+    "onboarding",
+    "bigquery",
+    "dashboard"
   ]
 }
