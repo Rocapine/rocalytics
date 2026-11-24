@@ -80,7 +80,7 @@ Rules that hold everywhere:
 
 ### Migrating old code
 
-- `adjust-superwall-bridge.ts` + its `useSuperwallEvents` hook (old `rocalytics-setup` plugin): delete both. The subscription call now lives in the purchase pipeline.
+- `adjust-superwall-bridge.ts` + its `useSuperwallEvents` hook (removed `rocalytics-setup` plugin): delete both. The subscription call now lives in the purchase pipeline.
 - `expo-marketing-stack` `adjust.provider.ts` with `EXPO_PUBLIC_ADJUST_TOKEN_*`: keep the provider shape if the app's analytics service fans out to it, but move tokens to the constants module, add `order_id` / `event_id` / `roca_id`, and drop `trial_started` / `direct_subscription` if they fire alongside `user_converted` and have no Adjust → partner mapping (ask first if they do).
 
 ## 5. Verify

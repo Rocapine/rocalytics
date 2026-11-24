@@ -31,7 +31,11 @@ Run it from the app's root ("set up Adjust"). It:
 
 What to provision per app (tokens, dashboard setup) is in `skills/setup-adjust/references/provisioning.md`.
 
-Supersedes the copy-based `rocalytics-setup` plugin (also in this repo): `setup-rocalytics` replaces its client setup, `setup-adjust` its Adjust Superwall bridge (the Facebook Superwall bridge stays there for now). It lives here rather than in rocalytics-sdk because that repo is public and its tests ban vendor and private-repo names.
+## Skill: `facebook-superwall`
+
+Scaffolds `services/analytics/bridges/facebook-superwall-bridge.ts` and wires it into `useSuperwallEvents`, so Superwall purchases reach the Facebook SDK (trials at 0.2× price). Needs `expo-superwall` and `react-native-fbsdk-next`.
+
+Replaces the removed copy-based `rocalytics-setup` plugin: `setup-rocalytics` covers its client, Superwall and onboarding setup, `setup-adjust` its Adjust bridge, `facebook-superwall` moved here as is. It lives here rather than in rocalytics-sdk because that repo is public and its tests ban vendor and private-repo names.
 
 ## Maintaining
 
