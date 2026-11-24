@@ -14,6 +14,8 @@ export const ADJUST_APP_TOKEN = "abc123def456";
 /** Event name → Adjust event token. Only events listed here are sent. */
 export const ADJUST_EVENT_TOKENS = {
   user_converted: "xyz789",
+  trial_started: "tri456", // optional
+  direct_subscription: "dir123", // optional
   // onboarding_completed: "…",
   // app_opened: "…",
 } as const satisfies Record<string, string>;
@@ -22,7 +24,7 @@ export const ADJUST_EVENT_TOKENS = {
 export const FACEBOOK_APP_ID: string | null = "1234567890";
 ```
 
-When `adjust_app_token_android` / `adjust_event_tokens_android` are set (Android is a separate Adjust app), use `Platform.select({ ios: …, android: … })` per constant. When they are null, one value serves both.
+One multi-platform Adjust app: the same values serve iOS and Android. Copy only the event tokens the platform returns; skip names with no token.
 
 ## Module
 
@@ -113,28 +115,34 @@ export type AdjustPurchase = {
 
 /** Call from the purchase pipeline, right next to rocalytics.trackPurchase. */
 export function trackAdjustPurchase(purchase: AdjustPurchase) {
-  trackUserConverted(purchase);
+  // Mirrors meta-capi's plan for a new subscriber (purchase_plan.ts): every purchase is a Purchase
+  // (purchase-<tx>); a trial is also a StartTrial (trial_started-<tx>), a paid one a Subscribe
+  // (subscribe-<tx>). Same event_id as meta-capi's twin, so Meta keeps one of each.
+  trackConversion("user_converted", "purchase", purchase);
+  if (purchase.isTrial) trackConversion("trial_started", "trial_started", purchase);
+  else trackConversion("direct_subscription", "subscribe", purchase);
   trackStoreSubscription(purchase);
 }
 
-function trackUserConverted(p: AdjustPurchase) {
+/** `eventIdPrefix`: meta-capi's prefix for the twin. Use the app's legacy one for "purchase" if it has one. */
+function trackConversion(name: string, eventIdPrefix: string, p: AdjustPurchase) {
+  const token = (ADJUST_EVENT_TOKENS as Record<string, string>)[name];
+  if (!token) return; // trial_started / direct_subscription are optional
   try {
-    const event = new AdjustEvent(ADJUST_EVENT_TOKENS.user_converted);
+    const event = new AdjustEvent(token);
     // No setRevenue: the store subscription call books the revenue; both would double it.
-    // Same value meta-capi sends on its Purchase twin (trial = 20% of price, TRIAL_VALUE_RATIO),
-    // so Meta sees one value whichever copy it keeps.
+    // Same value meta-capi sends (trial = 20% of price, TRIAL_VALUE_RATIO), so Meta sees one
+    // value whichever copy it keeps.
     const value = p.isTrial ? Math.round(p.price * 0.2 * 100) / 100 : p.price;
     event.addPartnerParameter("revenue", String(value));
     event.addPartnerParameter("currency", p.currency);
     event.addPartnerParameter("is_trial", String(p.isTrial));
     event.addPartnerParameter("order_id", p.originalTransactionIdentifier);
-    // "purchase" for trials too: meta-capi sends its Purchase twin as purchase-<tx> on every new
-    // subscriber, trial or paid (purchase_plan.ts). Use the app's legacy prefix if it has one.
-    const eventId = getEventId("purchase", { original_transaction_identifier: p.originalTransactionIdentifier });
+    const eventId = getEventId(eventIdPrefix, { original_transaction_identifier: p.originalTransactionIdentifier });
     if (eventId) event.addPartnerParameter("event_id", eventId);
     Adjust.trackEvent(event);
   } catch (error) {
-    console.error("[adjust] user_converted failed", error);
+    console.error(`[adjust] ${name} failed`, error);
   }
 }
 
