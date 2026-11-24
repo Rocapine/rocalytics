@@ -166,7 +166,7 @@ curl "https://rocalytics-api.rocapine.io/functions/v1/status?app=YOUR_APP_ID"
 
 ## Claude Code skill
 
-This repo ships the `rocalytics` [Claude Code](https://claude.com/claude-code) plugin. It adds [`@rocapine/rocalytics-sdk`](https://github.com/Rocapine/rocalytics-sdk) to an Expo app and wires the client, purchases (Superwall, RevenueCat, native paywalls), onboarding tracking and paywall tracking. It supersedes the copy-based `rocalytics-setup` plugin for client setup; `rocalytics-setup` still ships the Adjust and Facebook Superwall bridges.
+This repo ships the `rocalytics` [Claude Code](https://claude.com/claude-code) plugin. It adds [`@rocapine/rocalytics-sdk`](https://github.com/Rocapine/rocalytics-sdk) to an Expo app and wires the client, purchases (Superwall, RevenueCat, native paywalls), onboarding tracking and paywall tracking (`/setup-rocalytics`), and Adjust (`/setup-adjust`). It supersedes the copy-based `rocalytics-setup` plugin for client setup and the Adjust Superwall bridge; `rocalytics-setup` still ships the Facebook Superwall bridge.
 
 ```
 /plugin marketplace add rocapine/rocapine-marketplace

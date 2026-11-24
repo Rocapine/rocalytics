@@ -31,7 +31,7 @@ Run it from the app's root ("set up Adjust"). It:
 
 What to provision per app (tokens, dashboard setup) is in `skills/setup-adjust/references/provisioning.md`.
 
-Supersedes the copy-based `rocalytics-setup` plugin (also in this repo): `setup-rocalytics` replaces its client setup, `setup-adjust` its Adjust Superwall bridge. It lives here rather than in rocalytics-sdk because that repo is public and its tests ban vendor and private-repo names.
+Supersedes the copy-based `rocalytics-setup` plugin (also in this repo): `setup-rocalytics` replaces its client setup, `setup-adjust` its Adjust Superwall bridge (the Facebook Superwall bridge stays there for now). It lives here rather than in rocalytics-sdk because that repo is public and its tests ban vendor and private-repo names.
 
 ## Maintaining
 

@@ -35,12 +35,12 @@ Record:
 
 ## 2. Get the tokens
 
-Tokens live in the publishing platform. Find the app with `list_applications` (`compact: true`, `name_contains`) or by bundle id, then `get_application`. Read:
+Tokens live in the publishing platform. Find the app with `list_applications` (`compact: true`, `name_contains`) or by bundle id, then `get_application`. Read (contract in `references/provisioning.md` § *Publishing platform contract*):
 
-- `adjust_app_token` — the Adjust app token.
-- `adjust_event_tokens` — an object keyed by event name, e.g. `{ "user_converted": "abc123", "onboarding_completed": "def456" }`.
+- `adjust_app_token` — the Adjust app token; `adjust_app_token_android` when Android is a separate Adjust app.
+- `adjust_event_tokens` — event name → token, e.g. `{ "user_converted": "abc123", "onboarding_completed": "def456" }`; `adjust_event_tokens_android` when separate.
 
-If the platform has no Adjust fields yet, or they are empty, ask the user for the app token and the `user_converted` token (`AskUserQuestion`, free text), and say under *By hand* that they must be saved in the publishing platform. The full list of what to provision and where is in `references/provisioning.md`.
+These fields are not in the platform yet. If they are missing or empty, ask the user for the app token and the `user_converted` token (`AskUserQuestion`, free text), and say under *By hand* that they must be saved in the publishing platform. The full list of what to provision and where is in `references/provisioning.md`.
 
 `user_converted` is **required**. Without it, stop after install and init, and report the missing token.
 

@@ -2,6 +2,8 @@
 
 How an app fires a conversion through the Adjust SDK so it lines up with Rocalytics and with what Adjust forwards to Meta.
 
+`/setup-adjust` (rocalytics plugin) wires all of this into an app.
+
 Every Adjust event carries three ids:
 
 | Id | Adjust field | Value | Why |

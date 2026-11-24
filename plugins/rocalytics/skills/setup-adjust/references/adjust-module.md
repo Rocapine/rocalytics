@@ -6,7 +6,7 @@ Check every API against `node_modules/react-native-adjust/index.d.ts` (written a
 
 ## Config
 
-`services/analytics/adjust.config.ts` — values from the publishing platform (`get_application` → `adjust_app_token`, `adjust_event_tokens`; Facebook from `meta_app_id`):
+`services/analytics/adjust.config.ts` — values from the publishing platform (`get_application`, fields in `provisioning.md` § *Publishing platform contract*; Facebook from `meta_app_id`):
 
 ```typescript
 export const ADJUST_APP_TOKEN = "abc123def456";
@@ -22,7 +22,7 @@ export const ADJUST_EVENT_TOKENS = {
 export const FACEBOOK_APP_ID: string | null = "1234567890";
 ```
 
-If the platform holds separate iOS / Android values, use `Platform.select` per constant.
+When `adjust_app_token_android` / `adjust_event_tokens_android` are set (Android is a separate Adjust app), use `Platform.select({ ios: …, android: … })` per constant. When they are null, one value serves both.
 
 ## Module
 
@@ -121,10 +121,15 @@ function trackUserConverted(p: AdjustPurchase) {
   try {
     const event = new AdjustEvent(ADJUST_EVENT_TOKENS.user_converted);
     // No setRevenue: the store subscription call books the revenue; both would double it.
-    event.addPartnerParameter("revenue", String(p.price));
+    // Same value meta-capi sends on its Purchase twin (trial = 20% of price, TRIAL_VALUE_RATIO),
+    // so Meta sees one value whichever copy it keeps.
+    const value = p.isTrial ? Math.round(p.price * 0.2 * 100) / 100 : p.price;
+    event.addPartnerParameter("revenue", String(value));
     event.addPartnerParameter("currency", p.currency);
     event.addPartnerParameter("is_trial", String(p.isTrial));
     event.addPartnerParameter("order_id", p.originalTransactionIdentifier);
+    // "purchase" for trials too: meta-capi sends its Purchase twin as purchase-<tx> on every new
+    // subscriber, trial or paid (purchase_plan.ts). Use the app's legacy prefix if it has one.
     const eventId = getEventId("purchase", { original_transaction_identifier: p.originalTransactionIdentifier });
     if (eventId) event.addPartnerParameter("event_id", eventId);
     Adjust.trackEvent(event);

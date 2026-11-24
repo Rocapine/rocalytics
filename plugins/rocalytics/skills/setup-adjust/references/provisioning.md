@@ -2,11 +2,26 @@
 
 Done once per app, before or alongside `/setup-adjust`. Code values are saved in the publishing platform, so the skill (and any dev) reads them with `get_application` instead of asking around.
 
+## Publishing platform contract
+
+> **Not live yet.** `get_application` does not return these fields until the publishing platform ships them. Until then the skill asks for the tokens.
+
+`get_application` returns, per app:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `adjust_app_token` | `string \| null` | Adjust app token. The iOS one when Android is a separate Adjust app |
+| `adjust_app_token_android` | `string \| null` | Android app token. `null` = same as `adjust_app_token` (multi-platform Adjust app) |
+| `adjust_event_tokens` | `Record<string, string> \| null` | Event name → token, e.g. `{ "user_converted": "abc123" }` |
+| `adjust_event_tokens_android` | `Record<string, string> \| null` | Android event tokens. `null` = same as `adjust_event_tokens` |
+
+Tokens ship in the app binary: plain columns, not secrets. `update_application` accepts the same four fields. App health gets an "Adjust configured" check: `adjust_app_token` and `adjust_event_tokens.user_converted` set.
+
 ## In the publishing platform (read by the skill)
 
 | Field | Required | What | Where to find it in Adjust |
 | --- | --- | --- | --- |
-| `adjust_app_token` | yes | The app token. One token when the Adjust app is multi-platform; otherwise an iOS and an Android token | *App settings* → *App token* |
+| `adjust_app_token` (+ `_android` if separate) | yes | The app token | *App settings* → *App token* |
 | `adjust_event_tokens.user_converted` | yes | One event per conversion, trial or paid (`is_trial` partner parameter says which). Linked to Meta `Purchase` | *Events* → event token |
 | `adjust_event_tokens.onboarding_completed` | optional | Onboarding finished. Only if UA optimises or reports on it | *Events* |
 | `adjust_event_tokens.app_opened` | optional | Each app open | *Events* |
