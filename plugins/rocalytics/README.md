@@ -19,7 +19,23 @@ Run it from the app's root ("add rocalytics to this app"). It:
 6. migrates a copied client;
 7. verifies with `tsc`, lint and an `expo export` bundle, and reports what's connected and what's left.
 
-Supersedes the copy-based `rocalytics-setup` plugin (also in this repo) for client setup; that plugin keeps the Adjust and Facebook Superwall bridges. It lives here rather than in rocalytics-sdk because that repo is public and its tests ban vendor and private-repo names.
+## Skill: `setup-adjust`
+
+Run it from the app's root ("set up Adjust"). It:
+
+1. scans the app — existing Adjust code, the purchase pipeline, ATT, Rocalytics;
+2. reads the Adjust app token and event tokens from the publishing platform (`get_application`), or asks for them;
+3. installs `react-native-adjust` and its Expo config plugin;
+4. wires one Adjust module: init (sandbox in dev), attribution into Rocalytics `identify` and RevenueCat, `roca_id` as a global partner parameter, `user_converted` with `order_id` + `event_id` from the purchase pipeline, and store subscription tracking;
+5. verifies with `tsc`, lint, a bundle and an `event_id` test, and reports the dashboard work left.
+
+What to provision per app (tokens, dashboard setup) is in `skills/setup-adjust/references/provisioning.md`.
+
+## Skill: `facebook-superwall`
+
+Scaffolds `services/analytics/bridges/facebook-superwall-bridge.ts` and wires it into `useSuperwallEvents`, so Superwall purchases reach the Facebook SDK (trials at 0.2× price). Needs `expo-superwall` and `react-native-fbsdk-next`.
+
+Replaces the removed copy-based `rocalytics-setup` plugin: `setup-rocalytics` covers its client, Superwall and onboarding setup, `setup-adjust` its Adjust bridge, `facebook-superwall` moved here as is. It lives here rather than in rocalytics-sdk because that repo is public and its tests ban vendor and private-repo names.
 
 ## Maintaining
 

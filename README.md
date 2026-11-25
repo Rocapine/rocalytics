@@ -124,7 +124,7 @@ function RootLayout() {
 }
 ```
 
-The [`/rocalytics-superwall`](./plugins/rocalytics-setup/skills/rocalytics-superwall) skill scaffolds this as a standalone bridge file.
+The [`/setup-rocalytics`](./plugins/rocalytics/skills/setup-rocalytics) skill wires purchases for every stack.
 
 ---
 
@@ -166,7 +166,7 @@ curl "https://rocalytics-api.rocapine.io/functions/v1/status?app=YOUR_APP_ID"
 
 ## Claude Code skill
 
-This repo ships the `rocalytics` [Claude Code](https://claude.com/claude-code) plugin. It adds [`@rocapine/rocalytics-sdk`](https://github.com/Rocapine/rocalytics-sdk) to an Expo app and wires the client, purchases (Superwall, RevenueCat, native paywalls), onboarding tracking and paywall tracking. It supersedes the copy-based `rocalytics-setup` plugin for client setup; `rocalytics-setup` still ships the Adjust and Facebook Superwall bridges.
+This repo ships the `rocalytics` [Claude Code](https://claude.com/claude-code) plugin. It adds [`@rocapine/rocalytics-sdk`](https://github.com/Rocapine/rocalytics-sdk) to an Expo app and wires the client, purchases (Superwall, RevenueCat, native paywalls), onboarding tracking and paywall tracking (`/setup-rocalytics`), and Adjust (`/setup-adjust`). It also ships `/facebook-superwall` (Facebook SDK purchase tracking from Superwall events). It replaces the removed `rocalytics-setup` plugin.
 
 ```
 /plugin marketplace add rocapine/rocapine-marketplace
@@ -241,7 +241,7 @@ await rocalytics.trackOnboarding("goal", { goal: "lose_weight" }, {
 });
 ```
 
-The [`/rocalytics-onboarding`](./plugins/rocalytics-setup/skills/rocalytics-onboarding) skill wires this into a project's existing onboarding flow.
+The [`/setup-rocalytics`](./plugins/rocalytics/skills/setup-rocalytics) skill wires onboarding tracking into a project's existing flow.
 
 ### `client.identify(identifiers)`
 

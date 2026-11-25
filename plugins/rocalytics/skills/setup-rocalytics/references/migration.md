@@ -21,4 +21,4 @@ Delete any manual `track("onboarding_completed")` once the flow is on the sink â
 
 ## Old plugin
 
-The `rocalytics-setup` plugin (1.x) produced the copied-client setup. This skill replaces its client setup; nothing it scaffolded for the client needs to stay. Its Adjust / Facebook Superwall bridges are separate and stay.
+The removed `rocalytics-setup` plugin (1.x) produced the copied-client setup. This skill replaces its client setup; nothing it scaffolded for the client needs to stay. Its Adjust Superwall bridge is replaced by `/setup-adjust` (run it after this skill). Its Facebook Superwall bridge stays; the skill now lives in this plugin as `/facebook-superwall`.

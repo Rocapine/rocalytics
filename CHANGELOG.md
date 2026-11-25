@@ -6,6 +6,16 @@ Format: `[version or date] — summary`. Breaking changes are marked **BREAKING*
 
 ---
 
+## [2026-11-24] — rocalytics plugin 0.4.0: setup-adjust
+### Added
+- `/setup-adjust`: installs `react-native-adjust` + `@config-plugins/react-native-adjust` and wires one Adjust module — tokens read from the publishing platform (`adjust_app_token`, `adjust_event_tokens`; one multi-platform Adjust app, provisioned by `/provision-adjust`), init with sandbox in dev, attribution forwarded to Rocalytics `identify` (`adjust_id`, `adjust_attribution`) and RevenueCat, `roca_id` global partner parameter, `user_converted` (+ `trial_started` / `direct_subscription` when provisioned, ids matching meta-capi's StartTrial / Subscribe twins) from the purchase pipeline with `order_id` / `event_id` (no `setRevenue`: the store subscription call books revenue), App Store / Play subscription tracking, optional events. Replaces the `adjust-superwall` bridge and the expo-marketing-stack Adjust provider.
+- `references/provisioning.md`: what to create per app in Adjust and save in the publishing platform.
+- `/facebook-superwall` moved here from `rocalytics-setup`, unchanged.
+### Removed
+- **BREAKING** The `rocalytics-setup` plugin (`/rocalytics-setup`, `/rocalytics-superwall`, `/rocalytics-onboarding`, `/adjust-superwall`, `/facebook-superwall`). Use `/setup-rocalytics`, `/setup-adjust` and `/facebook-superwall` from the `rocalytics` plugin.
+
+---
+
 ## [2026-11-12] — setup-rocalytics 0.3.1: fixes from the first real run (oly)
 ### Fixed
 - An existing purchase pipeline wins over the per-stack recipes: the Superwall recipe added beside a pipeline the delegate already feeds counted every purchase twice. Check for a Superwall `PurchaseController` first.
