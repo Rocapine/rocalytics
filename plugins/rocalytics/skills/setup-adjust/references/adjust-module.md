@@ -22,6 +22,9 @@ export const ADJUST_EVENT_TOKENS = {
 
 /** Meta app id, for Meta Install Referrer on Android. null when the app has none. */
 export const FACEBOOK_APP_ID: string | null = "1234567890";
+
+/** Adjust branded link domain (`adjust_branded_domain`), e.g. "faith-garden.go.link". */
+export const ADJUST_BRANDED_DOMAIN = "faith-garden.go.link";
 ```
 
 One multi-platform Adjust app: the same values serve iOS and Android. Copy only the event tokens the platform returns; skip names with no token.
@@ -31,10 +34,12 @@ One multi-platform Adjust app: the same values serve iOS and Android. Copy only 
 ```typescript
 import Purchases from "react-native-purchases"; // only when the app uses RevenueCat
 import { Platform } from "react-native";
+import * as Linking from "expo-linking";
 import {
   Adjust,
   AdjustAppStoreSubscription,
   AdjustConfig,
+  AdjustDeeplink,
   AdjustEvent,
   AdjustPlayStoreSubscription,
   type AdjustAttribution,
@@ -59,8 +64,15 @@ export function initAdjust() {
     if (FACEBOOK_APP_ID) config.setFbAppId(FACEBOOK_APP_ID); // fills fbInstallReferrer
     config.enableCostDataInAttribution();
     config.setAttributionCallback(onAttribution);
+    // Deferred deep link (install from an Adjust link): the SDK opens it unless disabled.
+    // Keep the default unless the app routes it itself; then disableDeferredDeeplinkOpening()
+    // and route `deeplink.deeplink` here.
+    config.setDeferredDeeplinkCallback((deeplink) => {
+      if (__DEV__) console.log("[adjust] deferred deeplink", deeplink.deeplink);
+    });
     Adjust.initSdk(config);
     void setRocaId();
+    void listenForDeeplinks();
   } catch (error) {
     console.error("[adjust] init failed", error);
   }
@@ -97,6 +109,28 @@ async function setRocaId() {
     if (rocalytics.rocaId) Adjust.addGlobalPartnerParameter("roca_id", rocalytics.rocaId);
   } catch (error) {
     console.error("[adjust] roca_id failed", error);
+  }
+}
+
+/**
+ * Reattributes users who open the app from an Adjust link (branded domain Universal / App Link,
+ * or the app's URL scheme). Without processDeeplink, reengagement clicks are lost.
+ */
+async function listenForDeeplinks() {
+  try {
+    const initial = await Linking.getInitialURL();
+    if (initial) processDeeplink(initial);
+    Linking.addEventListener("url", ({ url }) => processDeeplink(url));
+  } catch (error) {
+    console.error("[adjust] deeplink listener failed", error);
+  }
+}
+
+function processDeeplink(url: string) {
+  try {
+    Adjust.processDeeplink(new AdjustDeeplink(url));
+  } catch (error) {
+    console.error("[adjust] processDeeplink failed", error);
   }
 }
 
@@ -186,11 +220,35 @@ export function trackAdjustEvent(name: string) {
 
 Drop the RevenueCat import and the `setAdjustID` line when the app has no `react-native-purchases`. Drop `getEventId` / `roca_id` when the app has no Rocalytics SDK, and list them under *By hand*.
 
+If the app already has a `Linking` listener (or an expo-router `+native-intent.tsx`), call `processDeeplink` from it instead of adding a second listener. Routing stays the app's: Adjust only records the open.
+
+## Associated domains (branded link)
+
+`ADJUST_BRANDED_DOMAIN` must also be in the native config, or the OS never hands the link to the app. In `app.json` / `app.config.*`:
+
+```jsonc
+{
+  "ios": { "associatedDomains": ["applinks:faith-garden.go.link"] },
+  "android": {
+    "intentFilters": [
+      {
+        "action": "VIEW",
+        "autoVerify": true,
+        "data": [{ "scheme": "https", "host": "faith-garden.go.link" }],
+        "category": ["BROWSABLE", "DEFAULT"]
+      }
+    ]
+  }
+}
+```
+
+Merge into existing `associatedDomains` / `intentFilters`; never replace them. Bare workflow: add `applinks:<domain>` to `ios/<App>/<App>.entitlements` (`com.apple.developer.associated-domains`) and the intent filter to `AndroidManifest.xml`. Universal Links also need the **Associated Domains** capability on the App ID; EAS Build usually syncs it from the entitlement, otherwise enable it in the Apple developer account.
+
 ## Where each call goes
 
 | Call | Where |
 | --- | --- |
-| `initAdjust()` | Startup, once. Root layout module scope, or the analytics service's `initialize()` if it has one |
+| `initAdjust()` | Startup, once. Root layout module scope, or the analytics service's `initialize()` if it has one. Also starts the deep-link listener |
 | `trackAdjustPurchase(...)` | Inside the purchase pipeline, next to `rocalytics.trackPurchase`, with the same transaction fields |
 | `trackAdjustEvent("onboarding_completed")` etc. | Where the app already tracks that moment (its analytics wrapper fan-out if it has one) |
 

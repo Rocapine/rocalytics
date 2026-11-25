@@ -1,6 +1,6 @@
 ---
 name: setup-adjust
-description: Add the Adjust SDK (react-native-adjust) to an Expo / React Native app and wire it the Rocapine way — tokens from the publishing platform, init (sandbox in dev), attribution sent to Rocalytics and RevenueCat, roca_id as a global partner parameter, one user_converted per purchase with order_id + event_id for Meta dedup, and store subscription tracking for revenue. Use when the user says "set up Adjust", "add Adjust", "install react-native-adjust", "wire Adjust events", "track conversions in Adjust", "Adjust attribution", or replaces the old adjust-superwall bridge or expo-marketing-stack Adjust provider.
+description: Add the Adjust SDK (react-native-adjust) to an Expo / React Native app and wire it the Rocapine way — tokens from the publishing platform, init (sandbox in dev), attribution sent to Rocalytics and RevenueCat, roca_id as a global partner parameter, one user_converted per purchase with order_id + event_id for Meta dedup, and store subscription tracking for revenue, and the branded link domain as an associated domain with deep-link handling. Use when the user says "set up Adjust", "add Adjust", "install react-native-adjust", "wire Adjust events", "track conversions in Adjust", "Adjust attribution", "Adjust deep links", "add the go.link domain", or replaces the old adjust-superwall bridge or expo-marketing-stack Adjust provider.
 ---
 
 # Set up Adjust
@@ -16,7 +16,7 @@ Work in this order. Every later step branches on the scan.
 From the app root:
 
 ```sh
-node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const k of ["expo","react-native","react-native-adjust","@config-plugins/react-native-adjust","@rocapine/rocalytics-sdk","expo-superwall","react-native-purchases","expo-tracking-transparency","react-native-fbsdk-next"])console.log(k.padEnd(40),d[k]??"-")'
+node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const k of ["expo","react-native","react-native-adjust","@config-plugins/react-native-adjust","@rocapine/rocalytics-sdk","expo-superwall","react-native-purchases","expo-tracking-transparency","react-native-fbsdk-next","expo-linking"])console.log(k.padEnd(40),d[k]??"-")'
 grep -rln --include=*.ts --include=*.tsx -e 'react-native-adjust' -e 'AdjustConfig' -e 'ADJUST_' . --exclude-dir=node_modules | head -30
 grep -rln --include=*.ts --include=*.tsx -e 'trackPurchase' -e 'SuperwallDelegate' -e 'useSuperwallEvents' -e 'purchasePackage' -e 'purchaseStoreProduct' -e 'requestTrackingPermissionsAsync' . --exclude-dir=node_modules
 ```
@@ -39,6 +39,7 @@ Tokens live in the publishing platform. Find the app with `list_applications` (`
 
 - `adjust_app_token` — the Adjust app token (12 characters). One multi-platform Adjust app: the same token on iOS and Android.
 - `adjust_event_tokens` — event name → token (6 characters), e.g. `{ "user_converted": "abc123", "onboarding_completed": "def456" }`. `{}` means nothing is provisioned.
+- `adjust_branded_domain` — the Adjust branded link domain, e.g. `faith-garden.go.link`. If null or absent, ask the user (`AskUserQuestion`; default convention `<app_slug>.go.link`) and list "save it in the publishing platform" under *By hand*.
 
 If `adjust_app_token` is null, `adjust_event_tokens.user_converted` is missing, or the fields are absent (older platform), run the publishing-platform plugin's `/provision-adjust` first when it is installed; otherwise ask the user for the app token and the `user_converted` token (`AskUserQuestion`, free text), and say under *By hand* that they must be saved in the publishing platform. The full list of what to provision and where is in `references/provisioning.md`.
 
@@ -52,11 +53,15 @@ App and event tokens ship in the binary: they are not secrets. Put them in a typ
 npx expo install react-native-adjust @config-plugins/react-native-adjust
 ```
 
+Add `expo-linking` too if it isn't installed (the deep-link listener uses it).
+
 `@config-plugins/react-native-adjust` 14.x needs Expo ≥ 56. On an older SDK pick the major that matches: `npm view @config-plugins/react-native-adjust versions peerDependencies --json`. Add `"@config-plugins/react-native-adjust"` to `plugins` in `app.json` / `app.config.*`. Read `node_modules/@config-plugins/react-native-adjust/README.md` for what it adds (AdServices / AdSupport, install referrer, AD_ID permission) and apply anything it says is manual.
 
 **The installed `react-native-adjust` types are the source of truth** (`node_modules/react-native-adjust/index.d.ts`). Check every method below against them and prefer them where they differ.
 
-This adds native code: say a **new native build** is needed.
+Add the branded domain to the native config: `applinks:<adjust_branded_domain>` in `ios.associatedDomains` and an `https` App Link intent filter on Android (`references/adjust-module.md` § *Associated domains*). Merge, don't replace.
+
+This adds native code and entitlements: say a **new native build** is needed.
 
 ## 4. Wire it
 
@@ -69,6 +74,7 @@ Follow `references/adjust-module.md`. It covers, in one module:
 5. **Conversions** — from the purchase pipeline: `user_converted` on every purchase, plus `trial_started` (trial) or `direct_subscription` (paid) when their tokens exist, each with `order_id`, `event_id` (meta-capi's prefix: `purchase` / `trial_started` / `subscribe`), `is_trial`, `revenue`, `currency`.
 6. **Subscriptions** — `trackAppStoreSubscription` / `trackPlayStoreSubscription` from the same place, for verified revenue.
 7. **Optional events** — any other token in `adjust_event_tokens` (`onboarding_completed`, `app_opened`, …), fired where the app already tracks that moment.
+8. **Deep links** — `Adjust.processDeeplink` on the initial URL and every `Linking` URL event (reuse the app's listener if it has one), plus the deferred deep link callback. Skip if the app already does it.
 
 Rules that hold everywhere:
 
@@ -97,7 +103,7 @@ All must pass before you report done. If a failure pre-exists, prove it with `gi
 
 ## 6. Report
 
-- **Connected** — init, attribution → Rocalytics / RevenueCat, `roca_id`, `user_converted`, subscriptions, optional events, each with its file.
+- **Connected** — init, attribution → Rocalytics / RevenueCat, `roca_id`, `user_converted`, subscriptions, optional events, deep links and associated domains, each with its file.
 - **Removed** — old bridge, duplicate init, env keys.
 - **Needs a native build.**
-- **By hand** — the dashboard items from `references/provisioning.md` § *Adjust dashboard* (Meta parameter sharing + mapping, subscription verification secrets), tokens to save in the publishing platform, and a sandbox test device check.
+- **By hand** — the dashboard items from `references/provisioning.md` § *Adjust dashboard* (Meta parameter sharing + mapping, subscription verification secrets, branded domain), tokens or branded domain to save in the publishing platform, the **Associated Domains** capability on the App ID if EAS didn't sync it, and a sandbox test device check.

@@ -12,6 +12,7 @@ Rocapine uses **one multi-platform Adjust app per app**: the same app token and 
 | --- | --- | --- |
 | `adjust_app_token` | `string \| null` | Adjust app token, 12 characters |
 | `adjust_event_tokens` | `Record<string, string>` | Event name → token (6 characters), e.g. `{ "user_converted": "abc123" }`. `{}` = none provisioned |
+| `adjust_branded_domain` | `string \| null` | Adjust branded link domain, e.g. `faith-garden.go.link` (convention `<app_slug>.go.link`) |
 
 Tokens ship in the app binary: plain columns, not secrets. Written with the publishing-platform MCP tool `set_app_adjust_config`. App health has an "adjust" check: `adjust_app_token` and `adjust_event_tokens.user_converted` set. The publishing-platform plugin's `provision-adjust` skill creates the events and saves the tokens.
 
@@ -25,6 +26,7 @@ Tokens ship in the app binary: plain columns, not secrets. Written with the publ
 | `adjust_event_tokens.direct_subscription` | recommended | Paid subscription with no trial. Linked to Meta `Subscribe`; `event_id` `subscribe-<tx>` | *Events* |
 | `adjust_event_tokens.onboarding_completed` | optional | Onboarding finished. Only if UA optimises or reports on it | *Events* |
 | `adjust_event_tokens.app_opened` | optional | Each app open | *Events* |
+| `adjust_branded_domain` | recommended | Branded link domain, added to the app as an associated domain (`applinks:`) and Android App Link | *Campaign Lab* → *Custom links* → branded domain |
 | `meta_app_id` (already exists) | recommended | Meta app id, so Adjust reads Meta Install Referrer on Android (fills `fbInstallReferrer` in attribution) | Meta for Developers |
 
 Create the events in Adjust with these exact names, so every app's dashboard reads the same.
@@ -41,13 +43,15 @@ Each purchase fires `user_converted` plus `trial_started` (trial) or `direct_sub
    - *Parameter mapping* → `order_id` → `order_id`, `event_id` → `event_id`.
 4. **Other partners** (TikTok, Google, Apple Search Ads) — enable and link `user_converted` per the network's UA needs.
 5. **SKAN** — conversion value schema, if the app runs iOS campaigns relying on SKAN.
-6. **Test device** — add the dev's device (adid / IDFA / GAID) in *Testing console* to check sandbox events after the first build.
+6. **Branded domain** — set up in Adjust (convention `<app_slug>.go.link`) with the iOS Team ID + bundle id and the Android package + SHA-256 signing fingerprint, so Adjust serves the `apple-app-site-association` and `assetlinks.json` files. Universal Links also need the **Associated Domains** capability on the App ID (EAS usually syncs it).
+7. **Test device** — add the dev's device (adid / IDFA / GAID) in *Testing console* to check sandbox events after the first build.
 
 ## Checklist
 
 - [ ] Adjust app created, bundle ids match.
 - [ ] `user_converted`, `trial_started`, `direct_subscription` events created; tokens saved in the publishing platform (`/provision-adjust`).
 - [ ] App token saved in the publishing platform.
+- [ ] Branded domain set up in Adjust (Team ID, bundle id, Android fingerprint) and saved in the publishing platform.
 - [ ] Optional event tokens saved, if any.
 - [ ] Subscription verification secrets set (iOS + Android).
 - [ ] Meta: parameters shared, `user_converted` → `Purchase`, `trial_started` → `StartTrial`, `direct_subscription` → `Subscribe`, `order_id` + `event_id` mapped.
